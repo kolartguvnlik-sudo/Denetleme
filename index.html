@@ -299,6 +299,7 @@ button{
     <div id="safeModeStatus" style="margin-top:6px; font-weight:700; color:#38bdf8;">Güvenli Mod Kapalı</div>
   </div>
 </div>
+
 <script>
 const help = document.getElementById("safeModeHelp");
 const info = document.getElementById("safeModeInfo");
@@ -307,6 +308,7 @@ help.addEventListener("click", () => {
   info.style.display = info.style.display === "none" ? "block" : "none";
 });
 </script>
+
 <div class="card">
   <div id="lockIcon" class="lock">🔐</div>
   <h2>Güvenli Giriş</h2>
@@ -322,9 +324,194 @@ help.addEventListener("click", () => {
 
 <div class="footer">© CGA Güvenlik Sistemi</div>
 
-<script src="tk.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyCye0QlekBFonTxfeBIlhLc9ia-mleyfUM",
+  authDomain: "denetleme-4d3d9.firebaseapp.com",
+  databaseURL: "https://denetleme-4d3d9-default-rtdb.firebaseio.com",
+  projectId: "denetleme-4d3d9",
+  storageBucket: "denetleme-4d3d9.appspot.com",
+  messagingSenderId: "584625735764",
+  appId: "1:584625735764:web:5889dcaadb69c4c78f45c1"
+});
+
+firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
+const msg = document.getElementById("msg");
+const lockIcon = document.getElementById("lockIcon");
+
+// Show message
+function show(text,type="error"){
+  msg.textContent=text;
+  msg.className="message "+type;
+}
+
+// Safe Mode input görselleştirme
+function updateSafeModeColors() {
+  if(localStorage.getItem("safeModeActive")==="yes"){
+    emailInput.style.color = "#ff0000";
+    emailInput.style.fontWeight = "900";
+    passwordInput.style.color = "#ff0000";
+    passwordInput.style.fontWeight = "900";
+  } else {
+    emailInput.style.color = "#fff";
+    emailInput.style.fontWeight = "400";
+    passwordInput.style.color = "#fff";
+    passwordInput.style.fontWeight = "400";
+  }
+}
+
+// Firebase giriş kontrolü ve Güvenli Mod otomatik login
+firebase.auth().onAuthStateChanged(user => {
+  if(user){
+    if(localStorage.getItem("safeModeActive") === "yes"){
+      emailInput.value = "Güvenli Mod";
+      passwordInput.value = "••••••••";
+      lockIcon.textContent = "🔒";
+      lockIcon.style.color = "#fff";
+      show("Güvenli Mod Etkin Giriş Yapınız.", "success");
+    } else {
+      updateSafeModeColors();
+      emailInput.value = user.email || "";
+      passwordInput.value = "";
+      lockIcon.textContent = "🔒";
+      lockIcon.style.color = "#fff";
+      show("Bilgilerinizi Girin.", "success");
+    }
+  } else {
+    emailInput.value = "";
+    passwordInput.value = "";
+    lockIcon.textContent = "🔐";
+    lockIcon.style.color = "#fff";
+    show("Bilgilerinizi Girin.", "success");
+  }
+});
+
+// Login function
+function login(){
+  const safeMode = localStorage.getItem("safeModeActive") === "yes";
+  const currentUser = firebase.auth().currentUser;
+
+  if(safeMode && currentUser){
+    lockIcon.textContent = "🔓";
+    lockIcon.style.color = "#22c55e";
+    show("Güvenli Mod ile giriş yapılıyor...", "success");
+
+    firebase.database().ref("users/" + currentUser.uid).once("value")
+      .then(snap => {
+        if(!snap.exists()){
+          show("Kullanıcı bulunamadı");
+          firebase.auth().signOut();
+          return;
+        }
+        const data = snap.val();
+        if(!data.approved){
+          show("Admin onayı bekleniyor");
+          firebase.auth().signOut();
+          return;
+        }
+        if(data.role !== "denetici" && data.role !== "admin"){
+          show("Bu sayfaya giriş yetkiniz yok");
+          firebase.auth().signOut();
+          return;
+        }
+        show(`Giriş başarılı (${data.role})`, "success");
+        localStorage.setItem("canEnterApp","yes");
+        setTimeout(()=>{ if(data.role==="denetici") location.replace("menü.html");
+          else location.replace("tekadmin.html"); },600);
+      });
+    return;
+  }
+
+  const mail = emailInput.value.trim();
+  const pass = passwordInput.value;
+  if(!mail || !pass){ show("E-posta ve şifre giriniz"); return; }
+
+  lockIcon.textContent = "🔐";
+  lockIcon.style.color = "#fff";
+  lockIcon.classList.remove("locking");
+
+  firebase.auth().signInWithEmailAndPassword(mail, pass)
+    .then(res => firebase.database().ref("users/" + res.user.uid).once("value"))
+    .then(snap => {
+      if(!snap.exists()){ show("Kullanıcı bulunamadı"); firebase.auth().signOut(); return; }
+      const data = snap.val();
+      if(!data.approved){ show("Admin onayı bekleniyor"); firebase.auth().signOut(); return; }
+      if(data.role !== "denetici" && data.role !== "admin"){ show("Bu sayfaya giriş yetkiniz yok"); firebase.auth().signOut(); return; }
+
+      lockIcon.textContent = "✔️";
+      lockIcon.style.color = "#22c55e";
+      show(`Giriş başarılı (${data.role})`, "success");
+      localStorage.setItem("canEnterApp","yes");
+      setTimeout(()=>{ if(data.role==="denetici") location.replace("menü.html");
+        else location.replace("tekadmin.html"); },700);
+    })
+    .catch(()=>{ lockIcon.classList.add("locking"); setTimeout(()=>lockIcon.classList.remove("locking"),1200); show("E-posta veya şifre hatalı"); });
+}
+
+// Şifre sıfırlama
+function resetPassword(){
+  const mail=emailInput.value.trim();
+  if(!mail){ show("E-posta giriniz"); return; }
+  firebase.auth().sendPasswordResetEmail(mail)
+    .then(()=> show("Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.","success"))
+    .catch(()=> show("Bu e-posta bulunamadı Lütfen Güvenli Moddan Çıkıp Tekrar Deneyin "));
+}
+
+// PWA install
+let deferredPrompt;
+const installBtn = document.getElementById("installBtn");
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredPrompt = e; installBtn.style.display = "block"; });
+installBtn.addEventListener("click", async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; installBtn.style.display = "none"; });
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+if(isIOS){ installBtn.style.display = "none"; }
+
+// Ayarlar menüsü
+const settingsBtn = document.getElementById("settingsBtn");
+const settingsMenu = document.getElementById("settingsMenu");
+const safeModeToggleBtn = document.getElementById("safeModeToggleBtn");
+const safeModeStatus = document.getElementById("safeModeStatus");
+
+// Ayarlar menüsünü aç/kapa
+settingsBtn.addEventListener("click", ()=>{
+    const current = getComputedStyle(settingsMenu).display;
+    settingsMenu.style.display = current === "none" ? "block" : "none";
+});
+
+// Safe Mode toggle
+if(localStorage.getItem("safeModeActive")==="yes"){
+  safeModeToggleBtn.classList.add("active");
+  safeModeStatus.textContent="Güvenli Mod Açık";
+  emailInput.value="Güvenli Mod";
+  passwordInput.value="••••••••";
+  updateSafeModeColors();
+}else{
+  safeModeToggleBtn.classList.remove("active");
+  safeModeStatus.textContent="Güvenli Mod Kapalı";
+  updateSafeModeColors();
+}
+
+safeModeToggleBtn.addEventListener("click", ()=>{
+  const isActive = safeModeToggleBtn.classList.toggle("active");
+  if(isActive){
+    localStorage.setItem("safeModeActive","yes");
+    safeModeStatus.textContent="Güvenli Mod Açık";
+    emailInput.value="Güvenli Mod";
+    passwordInput.value="••••••••";
+  }else{
+    localStorage.setItem("safeModeActive","no");
+    safeModeStatus.textContent="Güvenli Mod Kapalı";
+    emailInput.value="";
+    passwordInput.value="";
+  }
+  updateSafeModeColors();
+});
+</script>
 </body>
 </html>
+
 
 
 
