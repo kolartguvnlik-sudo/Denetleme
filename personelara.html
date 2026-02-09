@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Proje Bazlı Personel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<style>
+*{box-sizing:border-box}
+
+body{
+ margin:0;
+ font-family:'Segoe UI',system-ui;
+ background:radial-gradient(circle at top,#111a3a,#050914);
+ color:#fff;
+}
+
+/* 🔝 ÜST BAŞLIK */
+.header{
+ padding:14px 16px;
+ text-align:center;
+ font-size:18px;
+ font-weight:800;
+ color:#00e5ff;
+}
+
+/* ⎋ MENÜ BUTONU */
+.menu-exit-btn{
+ position:fixed;
+ top:12px;
+ right:12px;
+ z-index:9999;
+ padding:8px 12px;
+ border-radius:12px;
+ font-size:13px;
+ background:linear-gradient(135deg,#ff4d4d,#b30000);
+ color:#fff;
+ border:none;
+ box-shadow:0 6px 18px rgba(255,0,0,.5);
+ cursor:pointer;
+}
+
+/* 🔽 SELECT */
+.select-box{padding:14px}
+select{
+ width:100%;
+ padding:14px;
+ border-radius:14px;
+ background:#0f1735;
+ border:1px solid #ffffff22;
+ color:#fff;
+ font-size:15px;
+}
+
+/* 📋 LİSTE */
+.result{
+ padding:14px;
+ max-width:480px;
+ margin:auto;
+}
+
+/* 👤 KART */
+.card{
+ background:linear-gradient(135deg,#1b2445,#202c5a);
+ border-radius:18px;
+ padding:14px;
+ margin-bottom:14px;
+ box-shadow:0 10px 30px rgba(0,0,0,.25);
+ transition:.25s;
+}
+
+.card.active{
+ background:linear-gradient(135deg,#25306a,#2e3b85);
+}
+
+/* ÜST SATIR */
+.card-header{
+ display:flex;
+ gap:10px;
+ align-items:center;
+}
+
+/* İSİM */
+.info{
+ flex:1;
+}
+.info h3{
+ margin:0;
+ font-size:16px;
+}
+.info p{
+ margin:4px 0 0;
+ font-size:13px;
+ opacity:.85;
+}
+
+/* 📞 BUTON */
+.call-btn{
+ background:#00e5ff;
+ color:#001b2e;
+ border:none;
+ padding:10px 14px;
+ border-radius:12px;
+ font-weight:800;
+ cursor:pointer;
+ white-space:nowrap;
+}
+
+/* 🔍 DETAY */
+.detail{
+ display:none;
+ margin-top:12px;
+ padding-top:12px;
+ border-top:1px solid #ffffff22;
+ font-size:13px;
+}
+
+.card.active .detail{display:block}
+
+.detail img{
+ width:90px;
+ height:90px;
+ border-radius:14px;
+ object-fit:cover;
+ border:2px solid #00e5ff55;
+ margin-bottom:8px;
+}
+
+/* 🏷️ ROZET */
+.badge{
+ display:inline-block;
+ padding:4px 10px;
+ border-radius:20px;
+ font-size:11px;
+ font-weight:800;
+ margin-top:6px;
+}
+.green{background:#00c56e;color:#003b23}
+.red{background:#b30000;color:#fff}
+
+.empty{
+ text-align:center;
+ opacity:.6;
+ margin-top:40px;
+ font-size:14px;
+}
+
+/* 📱 KÜÇÜK EKRAN */
+@media(max-width:480px){
+ .header{font-size:17px}
+ .call-btn{padding:10px 12px;font-size:13px}
+}
+html, body {
+  overscroll-behavior-y: contain;
+  touch-action: pan-x pan-y;
+}
+
+</style>
+</head>
+
+<body>
+
+<button class="menu-exit-btn" onclick="goMenu()">⎋</button>
+
+<div class="header">📁 Proje Personelleri</div>
+
+<div class="select-box">
+  <select id="projectSelect">
+    <option value="">— Proje Seç —</option>
+  </select>
+</div>
+
+<div class="result" id="result"></div>
+
+<script>
+/* ⎋ MENÜ */
+function goMenu(){
+ sessionStorage.setItem("menuAllowed","ok");
+ window.location.href="menü.html";
+}
+
+/* 🔐 MENÜDEN GELDİ Mİ */
+if (sessionStorage.getItem("menuAllowed") !== "ok") {
+ window.location.replace("index.html");
+} else {
+ sessionStorage.removeItem("menuAllowed");
+}
+
+/* 🔥 FIREBASE */
+firebase.initializeApp({
+  apiKey: "AIzaSyDF6XwfMwASz1mHt16DrR9jjjpozP4MBlA",
+  authDomain: "denetleme-78b55.firebaseapp.com",
+  databaseURL: "https://denetleme-78b55-default-rtdb.firebaseio.com",
+  projectId: "denetleme-78b55",
+  storageBucket: "denetleme-78b55.appspot.com",
+  messagingSenderId: "762780340283",
+  appId: "1:762780340283:web:da64465ec4657307f64c1e"
+});
+
+const auth = firebase.auth();
+const db   = firebase.database();
+
+/* 🔐 AUTH KONTROL */
+auth.onAuthStateChanged(user=>{
+  if(!user){
+    location.replace("index.html");
+  }
+});
+
+const projectSelect=document.getElementById("projectSelect");
+const result=document.getElementById("result");
+
+/* 🔽 PROJELER */
+db.ref("projects").once("value",snap=>{
+ snap.forEach(p=>{
+  const opt=document.createElement("option");
+  opt.value=p.key;
+  opt.textContent=p.val().projectName;
+  projectSelect.appendChild(opt);
+ });
+});
+
+/* 📌 SEÇİM */
+projectSelect.onchange = async () => {
+
+  const pid = projectSelect.value;
+  result.innerHTML = "";
+
+  if (!pid) {
+    result.innerHTML = `<div class="empty">Proje seç</div>`;
+    return;
+  }
+
+  const snap = await db.ref("projects/" + pid + "/personnel").once("value");
+
+  if (!snap.exists()) {
+    result.innerHTML = `<div class="empty">Personel yok</div>`;
+    return;
+  }
+
+  let found = false;
+
+  for (const tc in snap.val()) {
+    found = true;
+
+    // 🔥 ASIL BİLGİYİ BURADAN ALIYORUZ
+    const pSnap = await db.ref("personnel/" + tc).once("value");
+    if (!pSnap.exists()) continue;
+
+    const p = pSnap.val();
+    const ad = p.adSoyad || "İsimsiz";
+
+    result.innerHTML += `
+      <div class="card" onclick="loadDetail('${tc}',this)">
+        <div class="card-header">
+          <div class="info">
+            <h3>${ad}</h3>
+<p>TC: ${maskTc(tc)}</p>
+
+          </div>
+          <button class="call-btn" onclick="callPerson(event,'${tc}')">📞</button>
+        </div>
+        <div class="detail"></div>
+      </div>
+    `;
+  }
+
+  if (!found) {
+    result.innerHTML = `<div class="empty">Personel yok</div>`;
+  }
+};
+
+async function callPerson(e,tc){
+ e.stopPropagation();
+ const s=await db.ref("personnel/"+tc+"/telefon").once("value");
+ if(!s.exists()) return alert("Telefon yok");
+ window.location.href="tel:"+s.val();
+}
+
+/* 🔍 DETAY */
+async function loadDetail(tc,card){
+ document.querySelectorAll(".card.active").forEach(c=>{
+  if(c!==card) c.classList.remove("active");
+ });
+ card.classList.toggle("active");
+ if(card.dataset.loaded) return;
+
+ const s=await db.ref("personnel/"+tc).once("value");
+ if(!s.exists()) return;
+ card.dataset.loaded="1";
+ const p=s.val();
+ const today=new Date().toISOString().slice(0,10);
+ const valid=p.kimlikGecerlilik>=today;
+
+ card.querySelector(".detail").innerHTML=`
+  ${p.photoBase64?`<img src="${p.photoBase64}">`:""}
+  <p><b>Telefon:</b> ${p.telefon||"-"}</p>
+  <p><b>Kimlik:</b> ${p.kimlikTuru||"-"}</p>
+  <span class="badge ${valid?'green':'red'}">
+   ${valid?'Kimlik Geçerli':'Kimlik Süresi Dolmuş'}
+  </span>`;
+}
+</script>
+<script>
+let startY = 0;
+
+window.addEventListener("touchstart", e => {
+  startY = e.touches[0].clientY;
+}, { passive: false });
+
+window.addEventListener("touchmove", e => {
+  const currentY = e.touches[0].clientY;
+  if (window.scrollY === 0 && currentY > startY) {
+    e.preventDefault(); // 🔒 yenilemeyi engeller
+  }
+}, { passive: false });
+function maskTc(tc){
+ if(!tc || tc.length < 4) return "********";
+ return tc.substring(0,2) + "******" + tc.slice(-2);
+}
+
+</script>
+
+</body>
+</html>

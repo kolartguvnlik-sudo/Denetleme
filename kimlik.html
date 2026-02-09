@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Kimlik Süresi Operasyon Paneli</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Firebase SDK'ları -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<style>
+body{
+ margin:0;
+ font-family:system-ui,Segoe UI;
+ background:#0b1220;
+ color:#e5e7eb;
+ display:none; /* ⚠ Başlangıçta gizle, auth sonrası göster */
+}
+.container{max-width:1400px;margin:auto;padding:20px}
+h1{margin-bottom:6px}
+.sub{opacity:.6;margin-bottom:16px}
+
+.top{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.top input,.top select{
+ padding:10px;border-radius:8px;border:none;font-size:14px
+}
+
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.stat{
+ background:#111827;padding:10px 14px;border-radius:10px;font-size:14px
+}
+
+.red{color:#ef4444}
+.orange{color:#fb923c}
+.yellow{color:#facc15}
+
+.table-wrap{overflow:auto;background:#020617;border-radius:14px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{
+ padding:10px 12px;border-bottom:1px solid #1f2937;
+ text-align:left;white-space:nowrap
+}
+th{background:#020617;position:sticky;top:0;z-index:2}
+tr:hover{background:#020617}
+
+.badge{
+ padding:4px 8px;border-radius:6px;font-weight:700;font-size:12px
+}
+.b-red{background:#7f1d1d;color:#fecaca}
+.b-orange{background:#7c2d12;color:#fed7aa}
+.b-yellow{background:#713f12;color:#fef08a}
+
+.btn{
+ padding:6px 10px;border-radius:6px;
+ background:#22c55e;color:#052e16;
+ font-weight:700;text-decoration:none;font-size:12px
+}
+
+.blink-red{
+ color:#ef4444;
+ font-weight:800;
+ animation:textBlink 1s infinite;
+}
+
+@keyframes textBlink{
+ 0%{opacity:1}
+ 50%{opacity:0.2}
+ 100%{opacity:1}
+}
+
+.btn-call{
+ padding:6px 10px;
+ border-radius:6px;
+ background:#38bdf8;
+ color:#082f49;
+ font-weight:700;
+ text-decoration:none;
+ font-size:12px;
+ margin-left:6px;
+}
+
+/* ===== MODAL ===== */
+.modal-backdrop{
+ position:fixed;
+ inset:0;
+ background:rgba(2,6,23,.75);
+ backdrop-filter:blur(6px);
+ display:none;
+ align-items:center;
+ justify-content:center;
+ z-index:999;
+}
+
+.modal{
+ background:linear-gradient(180deg,#020617,#020617cc);
+ border:1px solid #1f2937;
+ border-radius:18px;
+ width:420px;
+ max-width:92%;
+ padding:22px;
+ box-shadow:0 20px 60px rgba(0,0,0,.6);
+ animation:pop .25s ease-out;
+}
+
+@keyframes pop{
+ from{transform:scale(.9);opacity:0}
+ to{transform:scale(1);opacity:1}
+}
+
+.modal h3{
+ margin:0 0 4px;
+ font-size:20px;
+}
+
+.modal .kalan{
+ margin:10px 0 14px;
+ padding:10px;
+ border-radius:10px;
+ background:#020617;
+ border:1px solid #1f2937;
+ font-weight:700;
+ text-align:center;
+}
+
+.modal .grid{
+ display:grid;
+ grid-template-columns:1fr;
+ gap:8px;
+ font-size:14px;
+}
+
+.modal .grid span{
+ opacity:.6;
+}
+
+.modal .actions{
+ margin-top:16px;
+ display:flex;
+ gap:10px;
+}
+
+.modal .actions a{
+ flex:1;
+ text-align:center;
+}
+
+.modal .close{
+ margin-top:14px;
+ background:#1f2937;
+ color:#e5e7eb;
+ border:none;
+ width:100%;
+ padding:10px;
+ border-radius:10px;
+ cursor:pointer;
+}
+@media (max-width: 768px){
+ .stats{
+  flex-direction:row;
+  justify-content:space-between;
+ }
+
+ .stat{
+  flex:1;
+  text-align:center;
+ }
+}
+.page-title{
+ text-align:center;
+ margin-bottom:18px;
+}
+
+.page-title .main-title{
+ font-size:22px;
+ font-weight:800;
+ letter-spacing:.5px;
+}
+
+.page-title .sub-title{
+ font-size:14px;
+ opacity:.6;
+ margin-top:2px;
+}
+@media (max-width: 768px){
+ .top{
+  flex-direction:column;
+ }
+
+ #search{
+  width:100%;
+  font-size:15px;
+  padding:14px;
+ }
+
+ #filter{
+  width:100%;
+ }
+}
+.mini-filter{
+ display:flex;
+ justify-content:center;
+ margin-bottom:12px;
+}
+
+.mini-filter select{
+ background:#020617;
+ border:1px solid #1f2937;
+ color:#e5e7eb;
+ font-size:13px;
+ padding:6px 12px;
+ border-radius:999px;
+ outline:none;
+ cursor:pointer;
+}
+
+.mini-filter select:hover{
+ border-color:#334155;
+}
+/* ⎋ MENÜ BUTONU */
+.menu-exit-btn{
+ position:fixed;
+ top:12px;
+ right:12px;
+ z-index:9999;
+ padding:8px 12px;
+ border-radius:12px;
+ font-size:13px;
+ background:linear-gradient(135deg,#ff4d4d,#b30000);
+ color:#fff;
+ border:none;
+ box-shadow:0 6px 18px rgba(255,0,0,.5);
+ cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+<button class="menu-exit-btn" onclick="goMenu()">⎋</button>
+
+<div class="container">
+
+<div class="page-title">
+ <div class="main-title">Kimlik Süresi</div>
+ <div class="sub-title">Görüntüleme Paneli</div>
+</div>
+
+<div class="mini-filter">
+ <select id="filter">
+  <option value="all">Tümü</option>
+  <option value="red">0–4 Ay</option>
+  <option value="orange">6–9 Ay</option>
+  <option value="yellow">9–12 Ay</option>
+ </select>
+</div>
+
+<div class="stats">
+ <div class="stat red">Kritik: <b id="cRed">0</b></div>
+ <div class="stat orange">6–9 Ay: <b id="cOrange">0</b></div>
+ <div class="stat yellow">9–12 Ay: <b id="cYellow">0</b></div>
+</div>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+ <th>Ad Soyad</th>
+ <th>Kalan Süre</th>
+ <th>Detay</th>
+</tr>
+</thead>
+<tbody id="tbody"></tbody>
+</table>
+</div>
+
+</div>
+
+<!-- MODAL -->
+<div id="modal" class="modal-backdrop">
+ <div class="modal">
+  <div id="mKalan" class="kalan"></div>
+  <div class="grid">
+   <div><span>Ad Soyad</span> — <b id="mAd"></b></div>
+   <div><span>TC</span> — <b id="mTc"></b></div>
+   <div><span>Proje</span> — <b id="mProje"></b></div>
+   <div><span>Kimlik Türü</span> — <b id="mKimlik"></b></div>
+   <div><span>Bitiş Tarihi</span> — <b id="mBitis"></b></div>
+  </div>
+  <div class="actions">
+   <a id="mWp" class="btn" target="_blank">WhatsApp</a>
+   <a id="mCall" class="btn-call">Ara</a>
+  </div>
+  <button class="close" onclick="closeDetail()">Kapat</button>
+ </div>
+</div>
+
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyDF6XwfMwASz1mHt16DrR9jjjpozP4MBlA",
+  authDomain: "denetleme-78b55.firebaseapp.com",
+  databaseURL: "https://denetleme-78b55-default-rtdb.firebaseio.com",
+  projectId: "denetleme-78b55",
+  storageBucket: "denetleme-78b55.appspot.com",
+  messagingSenderId: "762780340283",
+  appId: "1:762780340283:web:da64465ec4657307f64c1e"
+});
+
+const auth = firebase.auth();
+const db = firebase.database();
+const tbody = document.getElementById("tbody");
+const filter = document.getElementById("filter");
+
+let rows = [];
+let projects = {};
+
+// 🔐 Sayfa erişim kontrolü
+auth.onAuthStateChanged(user => {
+  if(!user){
+    // Giriş yoksa login sayfasına yönlendir
+    window.location.href = "index.html"; // login sayfanın URL'sini değiştir
+  } else {
+    // Giriş yapılmışsa sayfayı göster
+    document.body.style.display = "block";
+    initPanel();
+  }
+});
+
+// MENÜ BUTONU
+function goMenu(){
+  window.location.href="menü.html";
+}
+
+// PANELİ BAŞLAT
+function initPanel(){
+  // PROJELERİ ÇEK
+  db.ref("projects").once("value").then(s=>{
+    s.forEach(p=>{
+      projects[p.key] = p.val().projectName || p.key;
+    });
+    return db.ref("personnel").once("value");
+  }).then(snap=>{
+    snap.forEach(p=>{
+      const x = p.val();
+      if(!x.kimlikGecerlilik) return;
+
+      const bitis = new Date(x.kimlikGecerlilik);
+      const gun = Math.ceil((bitis - new Date()) / 86400000);
+      if(gun <= 0 || gun > 365) return;
+
+      let durum="", badge="";
+
+      if (gun <= 120) {
+        durum = "red";
+        badge = "🔴";
+      }
+      else if (gun <= 270) {
+        durum = "orange";
+        badge = "🟠";
+      }
+      else if (gun <= 365) {
+        durum = "yellow";
+        badge = "🟡";
+      } else {
+        return;
+      }
+
+      let kalan = gun <= 90
+        ? `${gun} gün`
+        : `${Math.floor(gun/30)} ay ${gun%30} gün`;
+
+      let projectId = "Tanımsız";
+
+      if (x.project && typeof x.project === "string") {
+        projectId = x.project;
+      } else if (x.projects && typeof x.projects === "object") {
+        const keys = Object.keys(x.projects);
+        if (keys.length > 0) projectId = keys[0];
+      }
+
+      rows.push({
+        durum,
+        badge,
+        gun,
+        ad: x.adSoyad || "",
+        tc: p.key,
+        proje: projects[projectId] || projectId,
+        kimlik: x.kimlikTuru || "",
+        bitis: bitis.toLocaleDateString("tr-TR"),
+        kalan,
+        tel: x.telefon || ""
+      });
+    });
+    render();
+  });
+}
+
+// RENDER FONKSİYONU
+function render(){
+ const f = filter.value;
+ tbody.innerHTML = "";
+
+ let cr = 0, co = 0, cy = 0;
+
+ rows
+  .filter(r => f === "all" || r.durum === f)
+  .forEach(r => {
+
+   if(r.durum === "red") cr++;
+   if(r.durum === "orange") co++;
+   if(r.durum === "yellow") cy++;
+
+   tbody.innerHTML += `
+    <tr>
+     <td>${r.ad}</td>
+     <td class="${r.gun <= 180 ? "blink-red" : ""}">
+       ${r.kalan}
+     </td>
+     <td>
+      <button class="btn" onclick='openDetail(${JSON.stringify(r)})'>
+       Detay
+      </button>
+     </td>
+    </tr>
+   `;
+  });
+
+ cRed.textContent = cr;
+ cOrange.textContent = co;
+ cYellow.textContent = cy;
+}
+
+filter.onchange = render;
+
+function maskTc(tc){
+ return tc.substring(0,2) + "******" + tc.slice(-2);
+}
+
+function openDetail(r){
+ document.getElementById("mAd").textContent = r.ad;
+ document.getElementById("mTc").textContent = maskTc(r.tc);
+ document.getElementById("mProje").textContent = r.proje;
+ document.getElementById("mKimlik").textContent = r.kimlik;
+ document.getElementById("mBitis").textContent = r.bitis;
+
+ document.getElementById("mKalan").textContent =
+  `Kimliğin sona ermesine ${r.kalan} kaldı`;
+
+ const msg = `Sayın ${r.ad},
+
+Kimlik Bitiş Tarihi: ${r.bitis}
+Kalan Süre: ${r.kalan}
+
+Kimlik yenileme süreci ortalama 4–6 ay sürmektedir.
+Herhangi bir mağduriyet yaşanmaması ve görev devamlılığının sağlanabilmesi adına,
+yenileme işlemlerinizin ivedilikle başlatılması gerekmektedir.`;
+
+ document.getElementById("mWp").href =
+  `https://wa.me/90${r.tel}?text=${encodeURIComponent(msg)}`;
+
+ document.getElementById("mCall").href = `tel:${r.tel}`;
+
+ document.getElementById("modal").style.display = "flex";
+}
+
+function closeDetail(){
+ document.getElementById("modal").style.display = "none";
+}
+
+</script>
+
+</body>
+</html>

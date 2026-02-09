@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Kayıt Ol</title>
+
+<!-- MOBİL FULL UYUM -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#040714">
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<style>
+*{
+ box-sizing:border-box;
+ -webkit-tap-highlight-color:transparent;
+}
+
+body{
+ margin:0;
+ min-height:100svh;
+ display:flex;
+ justify-content:center;
+ align-items:center;
+ background:radial-gradient(circle at top,#1c2b6f,#040714);
+ font-family:'Segoe UI',system-ui;
+ color:#fff;
+ padding:16px;
+}
+
+.card{
+ width:100%;
+ max-width:380px;
+ padding:26px;
+ border-radius:26px;
+ background:rgba(20,30,70,.55);
+ backdrop-filter:blur(18px);
+ box-shadow:0 40px 120px rgba(0,0,0,.7);
+}
+
+h2{
+ text-align:center;
+ color:#00e5ff;
+ font-size:22px;
+ margin-bottom:6px;
+}
+
+.subtitle{
+ text-align:center;
+ font-size:13px;
+ opacity:.75;
+ margin-bottom:18px;
+}
+
+input{
+ width:100%;
+ padding:15px;
+ margin-top:14px;
+ border-radius:16px;
+ background:rgba(10,15,40,.85);
+ border:1px solid rgba(255,255,255,.1);
+ color:#fff;
+ font-size:15px;
+ outline:none;
+}
+
+input:focus{
+ border-color:#00e5ff;
+}
+
+button{
+ width:100%;
+ margin-top:18px;
+ padding:15px;
+ border:none;
+ border-radius:18px;
+ background:linear-gradient(135deg,#00e5ff,#6a5cff);
+ font-weight:900;
+ font-size:15px;
+ cursor:pointer;
+}
+
+.login-btn{
+ background:none;
+ border:1px solid rgba(255,255,255,.25);
+ color:#fff;
+}
+
+.message{
+ display:none;
+ margin-top:16px;
+ padding:14px;
+ border-radius:14px;
+ text-align:center;
+ font-size:14px;
+}
+
+.success{color:#22c55e}
+.error{color:#ff6b6b}
+
+small{
+ display:block;
+ text-align:center;
+ margin-top:16px;
+ font-size:12px;
+ opacity:.6;
+}
+
+/* ŞİFRE KURALLARI */
+.rules{
+ display:none;
+ margin-top:12px;
+ font-size:13px;
+}
+
+.rules div{
+ margin-top:6px;
+ color:#ff6b6b;
+}
+
+.rules div.ok{
+ color:#22c55e;
+ font-weight:600;
+}
+
+/* KÜÇÜK TELEFONLAR */
+@media(max-width:360px){
+ h2{font-size:20px}
+ input,button{font-size:14px}
+ .card{padding:22px}
+}
+body{
+ align-items:flex-start;
+}
+
+.card{
+ margin-top:8vh;
+ transition:transform .3s ease;
+}
+
+body.keyboard-open .card{
+ transform:translateY(-20vh);
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="card">
+ <h2>🛡️ Denetici Kaydı</h2>
+ <div class="subtitle">Yetkili erişim için başvurunuzu oluşturun</div>
+
+ <input id="fullName" placeholder="İsim Soyisim">
+ <input id="email" type="email" placeholder="E-posta adresi">
+ <input id="password" type="password" placeholder="Şifre">
+
+ <div class="rules" id="rulesBox">
+  <div id="r-length">❌ En az 6 karakter</div>
+  <div id="r-letter">❌ En az 1 harf</div>
+  <div id="r-number">❌ En az 1 rakam</div>
+  <div id="r-seq">❌ Ardışık 123 / abc olamaz</div>
+ </div>
+
+ <button onclick="register()">Kayıt Ol</button>
+ <button class="login-btn" onclick="goLogin()">Zaten hesabınız var mı?</button>
+
+ <div id="msg" class="message"></div>
+ <small>Admin onayı olmadan giriş yapılamaz</small>
+</div>
+
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyDF6XwfMwASz1mHt16DrR9jjjpozP4MBlA",
+  authDomain: "denetleme-78b55.firebaseapp.com",
+  databaseURL: "https://denetleme-78b55-default-rtdb.firebaseio.com",
+  projectId: "denetleme-78b55",
+  storageBucket: "denetleme-78b55.appspot.com",
+  messagingSenderId: "762780340283",
+  appId: "1:762780340283:web:da64465ec4657307f64c1e"
+});
+
+const msg=document.getElementById("msg");
+const rulesBox=document.getElementById("rulesBox");
+const passInput=document.getElementById("password");
+
+const rLength=document.getElementById("r-length");
+const rLetter=document.getElementById("r-letter");
+const rNumber=document.getElementById("r-number");
+const rSeq=document.getElementById("r-seq");
+
+document.querySelectorAll("input").forEach(inp=>{
+ inp.addEventListener("focusin",()=>{
+  rulesBox.style.display=(inp.id==="password")?"block":"none";
+ });
+});
+
+passInput.addEventListener("input",()=>{
+ const pass=passInput.value;
+ toggle(rLength,pass.length>=6);
+ toggle(rLetter,/[a-zA-Z]/.test(pass));
+ toggle(rNumber,/[0-9]/.test(pass));
+ toggle(rSeq,!hasSequential(pass));
+});
+
+function isInvalidPassword(pass){
+ return pass.length<6 ||
+ !/[a-zA-Z]/.test(pass) ||
+ !/[0-9]/.test(pass) ||
+ hasSequential(pass);
+}
+
+function hasSequential(pass){
+ for(let i=0;i<pass.length-2;i++){
+  let a=pass.charCodeAt(i);
+  if(pass.charCodeAt(i+1)===a+1 && pass.charCodeAt(i+2)===a+2) return true;
+ }
+ return false;
+}
+
+function toggle(el,ok){
+ el.classList.toggle("ok",ok);
+ el.textContent=(ok?"✔ ":"❌ ")+el.textContent.slice(2);
+}
+
+function showMessage(text,type){
+ msg.textContent=text;
+ msg.className="message "+type;
+ msg.style.display="block";
+ setTimeout(()=>msg.style.display="none",5000);
+}
+
+function firebaseErrorTR(e){
+ switch(e.code){
+  case "auth/invalid-email": return "❌ Geçersiz e-posta adresi";
+  case "auth/email-already-in-use": return "❌ Bu e-posta zaten kayıtlı";
+  case "auth/weak-password": return "❌ Şifre çok zayıf";
+  case "auth/network-request-failed": return "❌ İnternet bağlantısı yok";
+  case "auth/too-many-requests": return "❌ Çok fazla deneme yapıldı";
+  default: return "❌ Beklenmeyen bir hata oluştu";
+ }
+}
+
+function register(){
+ const name=fullName.value.trim();
+ const mail=email.value.trim();
+ const pass=password.value;
+
+ if(!name||!mail||!pass){
+  showMessage("❗ Tüm alanları doldurun","error");return;
+ }
+
+ if(isInvalidPassword(pass)){
+  showMessage("❌ Şifre kurallara uymuyor","error");return;
+ }
+
+ firebase.auth()
+ .createUserWithEmailAndPassword(mail,pass)
+ .then(res=>{
+  return firebase.database().ref("users/"+res.user.uid).set({
+   fullName:name,
+   email:mail,
+   role:"denetici",
+   approved:false,
+   createdAt:Date.now()
+  });
+ })
+ .then(()=>showMessage("✅ Kayıt alındı, admin onayı bekleniyor","success"))
+ .catch(e=>showMessage(firebaseErrorTR(e),"error"));
+}
+
+function goLogin(){
+ location.href="index.html";
+}
+
+passInput.addEventListener("focus",()=>{
+ document.body.classList.add("keyboard-open");
+});
+
+passInput.addEventListener("blur",()=>{
+ document.body.classList.remove("keyboard-open");
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Denetleme Sistemi | Giriş</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="manifest" href="./manifest.json">
+
+<meta name="theme-color" content="#1e3a8a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Denetleme Sistemi">
+
+<link rel="apple-touch-icon" sizes="180x180" href="./icon-180.png">
+<link rel="apple-touch-icon" sizes="152x152" href="./icon-152.png">
+<link rel="apple-touch-icon" sizes="120x120" href="./icon-120.png">
+<link rel="apple-touch-icon" sizes="192x192" href="./icon-192.png">
+
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;height:100%;overscroll-behavior:none;}
+body{
+  font-family:'Inter',sans-serif;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:18px;
+  background:radial-gradient(circle at top,#1e3a8a,#020617);
+  color:#fff;
+}
+
+.card{
+  width:100%;
+  max-width:380px;
+  padding:28px 26px 30px;
+  border-radius:26px;
+  background:rgba(15,23,42,.65);
+  backdrop-filter:blur(18px);
+  box-shadow:0 30px 80px rgba(0,0,0,.8);
+  text-align:center;
+}
+
+.lock {
+  font-size:50px;
+  display:inline-block;
+  transition: transform 0.5s ease, color 0.5s ease;
+  margin-bottom:12px;
+}
+.lock.locking {
+  animation: lockShake 0.6s ease-in-out 2;
+  transform: scale(1.3) rotate(15deg);
+}
+
+@keyframes lockShake {
+  0% { transform: scale(1.3) rotate(15deg); }
+  25% { transform: scale(1.3) rotate(-15deg); }
+  50% { transform: scale(1.3) rotate(15deg); }
+  75% { transform: scale(1.3) rotate(-15deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+h2{
+  margin:0 0 18px;
+  font-weight:800;
+  font-size:24px;
+  color:#38bdf8;
+}
+
+input{
+  width:100%;
+  padding:15px 16px;
+  margin-top:14px;
+  border-radius:16px;
+  background:#020617;
+  border:1px solid #334155;
+  color:#fff;
+  font-size:15px;
+}
+input::placeholder{color:#94a3b8;}
+
+button{
+  width:100%;
+  margin-top:22px;
+  padding:16px;
+  border:none;
+  border-radius:18px;
+  background:linear-gradient(135deg,#38bdf8,#6366f1);
+  font-weight:800;
+  font-size:16px;
+  color:#020617;
+  cursor:pointer;
+}
+
+.bottom-actions{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:18px;
+  font-size:13px;
+  white-space:nowrap;
+}
+.bottom-actions a{
+  color:#38bdf8;
+  text-decoration:none;
+  font-weight:600;
+}
+
+.message{
+  margin-top:18px;
+  text-align:center;
+  font-weight:700;
+  font-size:14px;
+}
+.message.error{color:#ff6b6b}
+.message.success{color:#22c55e}
+
+.footer{
+  position:fixed;
+  right:12px;
+  bottom:12px;
+  font-size:11px;
+  color:#94a3b8;
+  opacity:.7;
+  pointer-events:none;
+}
+
+.install-btn{
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  padding: 0;
+  background: transparent; /* tamamen şeffaf */
+  color: #38bdf8;          /* sadece emoji/metin görünür */
+  font-size: 20px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  z-index: 500;            /* ayarlar butonunun altında */
+  display: none;
+  pointer-events: auto;    /* tıklanabilir */
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+.install-btn:hover{
+  transform: scale(1.2);
+  color: #22d3ee;
+}
+
+
+
+
+
+/* Ayarlar butonu sadece simge olacak, minimal */
+.settings-btn {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  width: auto;          /* simgeye göre genişlik */
+  height: auto;         /* simgeye göre yükseklik */
+  padding: 0;           /* hiç padding yok */
+  background: transparent; /* arka plan yok */
+  border: none;         /* border yok */
+  font-size: 24px;      /* simgeyi rahat gör */
+  cursor: pointer;
+  z-index: 999;
+  color: #facc15;       /* simge rengi turuncu */
+  transition: transform 0.2s ease;
+}
+.settings-btn:hover {
+  transform: scale(1.2); /* hover efekti */
+}
+
+#settingsMenu{
+  display:none; 
+  position:fixed; 
+  top:50px; 
+  right:12px; 
+  background:rgba(15,23,42,.95); 
+  padding:24px 20px;      /* biraz daha padding */
+  border-radius:20px; 
+  color:#fff; 
+  width:260px;            /* genişletildi */
+  z-index:998; 
+  box-shadow:0 12px 36px rgba(0,0,0,0.7);
+  font-size:14px;         /* biraz daha büyük font */
+}
+#safeModeContainer{
+  margin-top:10px; 
+  text-align:center; 
+  position:relative;
+}
+
+#settingsMenu label{
+  display:flex; 
+  justify-content:space-between; 
+  align-items:center; 
+  cursor:pointer;
+}
+
+#safeModeHelp{
+  color:#ff0000;
+  font-weight:900;
+  font-size:20px;       /* biraz büyütüldü */
+  animation:blink 0.7s infinite;
+  margin-left:6px;
+  cursor:pointer;
+  user-select:none;
+  display:inline-block;
+  padding:3px 8px;
+  border:1px solid #ff0000;
+  border-radius:6px;
+  background:rgba(0,0,0,0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+#safeModeHelp:hover {
+  transform: scale(1.3);
+  box-shadow: 0 4px 12px rgba(255,0,0,0.7);
+}
+#safeModeInfo{
+  display:none; 
+  position:absolute; 
+  background:rgba(0,0,0,0.95); 
+  color:#fff; 
+  padding:12px;          /* biraz daha büyük padding */
+  border-radius:10px; 
+  width:240px;           /* tooltip genişliği artırıldı */
+  z-index:1000; 
+  font-size:14px;        /* daha okunaklı */
+  top:28px; 
+  left:0;
+  box-shadow:0 6px 18px rgba(0,0,0,0.6);
+}
+@keyframes blink{
+  0%,50%,100%{opacity:1;}
+  25%,75%{opacity:0;}
+}
+.toggle-btn{
+  width:50px;
+  height:26px;
+  border-radius:13px;
+  border:none;
+  background:#555;
+  position:relative;
+  cursor:pointer;
+  transition: background 0.3s;
+}
+.toggle-btn::after{
+  content:'';
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  background:#fff;
+  position:absolute;
+  top:2px;
+  left:2px;
+  transition: left 0.3s, background 0.3s;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+.toggle-btn.active{
+  background:#22c55e;
+}
+.toggle-btn.active::after{
+  left:26px;
+  background:#fff;
+}
+
+</style>
+</head>
+<body>
+<button id="settingsBtn" class="settings-btn">⚙️</button>
+
+<button id="installBtn" class="install-btn">📲Uygulamayı Yükle</button>
+
+<div id="settingsMenu">
+  <div id="safeModeContainer" style="margin-top:10px; text-align:center; position:relative;">
+    <div style="font-size:18px; font-weight:700; display:flex; justify-content:space-between; align-items:center;">
+      <!-- Güvenli Mod başlığı + yardım simgesi -->
+      <div style="display:flex; align-items:center; gap:6px; position:relative;">
+        <span>Güvenli Mod</span>
+        <span id="safeModeHelp" style="color:#ff0000; font-weight:900; cursor:pointer;">❗</span>
+        <div id="safeModeInfo" style="display:none; position:absolute; background:rgba(0,0,0,0.85); color:#fff; padding:10px; border-radius:8px; width:220px; z-index:1000; font-size:13px; top:26px; left:0;">
+          Güvenli Mod etkin olduğunda uygulama giriş bilgilerinizi gizler ve hızlı erişim sağlar.
+        </div>
+      </div>
+
+      <!-- Toggle buton -->
+      <button id="safeModeToggleBtn" class="toggle-btn"></button>
+    </div>
+
+    <!-- Safe Mode durumu -->
+    <div id="safeModeStatus" style="margin-top:6px; font-weight:700; color:#38bdf8;">Güvenli Mod Kapalı</div>
+  </div>
+</div>
+
+<script>
+const help = document.getElementById("safeModeHelp");
+const info = document.getElementById("safeModeInfo");
+
+help.addEventListener("click", () => {
+  info.style.display = info.style.display === "none" ? "block" : "none";
+});
+</script>
+
+<div class="card">
+  <div id="lockIcon" class="lock">🔐</div>
+  <h2>Güvenli Giriş</h2>
+  <input id="email" type="email" placeholder="E-posta">
+  <input id="password" type="password" placeholder="Şifre">
+  <button onclick="login()">Giriş Yap</button>
+  <div class="bottom-actions">
+    <a href="kayit.html">➕ Denetçi Hesabı Oluştur</a>
+    <a href="#" onclick="resetPassword()">Şifremi Unuttum</a>
+  </div>
+  <div id="msg" class="message"></div>
+</div>
+
+<div class="footer">© CGA Güvenlik Sistemi</div>
+
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyDF6XwfMwASz1mHt16DrR9jjjpozP4MBlA",
+  authDomain: "denetleme-78b55.firebaseapp.com",
+  databaseURL: "https://denetleme-78b55-default-rtdb.firebaseio.com",
+  projectId: "denetleme-78b55",
+  storageBucket: "denetleme-78b55.appspot.com",
+  messagingSenderId: "762780340283",
+  appId: "1:762780340283:web:da64465ec4657307f64c1e"
+});
+
+firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
+const msg = document.getElementById("msg");
+const lockIcon = document.getElementById("lockIcon");
+
+// Show message
+function show(text,type="error"){
+  msg.textContent=text;
+  msg.className="message "+type;
+}
+
+// Safe Mode input görselleştirme
+function updateSafeModeColors() {
+  if(localStorage.getItem("safeModeActive")==="yes"){
+    emailInput.style.color = "#ff0000";
+    emailInput.style.fontWeight = "900";
+    passwordInput.style.color = "#ff0000";
+    passwordInput.style.fontWeight = "900";
+  } else {
+    emailInput.style.color = "#fff";
+    emailInput.style.fontWeight = "400";
+    passwordInput.style.color = "#fff";
+    passwordInput.style.fontWeight = "400";
+  }
+}
+
+// Firebase giriş kontrolü ve Güvenli Mod otomatik login
+firebase.auth().onAuthStateChanged(user => {
+  if(user){
+    if(localStorage.getItem("safeModeActive") === "yes"){
+      emailInput.value = "Güvenli Mod";
+      passwordInput.value = "••••••••";
+      lockIcon.textContent = "🔒";
+      lockIcon.style.color = "#fff";
+      show("Güvenli Mod Etkin Giriş Yapınız.", "success");
+    } else {
+      updateSafeModeColors();
+      emailInput.value = user.email || "";
+      passwordInput.value = "";
+      lockIcon.textContent = "🔒";
+      lockIcon.style.color = "#fff";
+      show("Bilgilerinizi Girin.", "success");
+    }
+  } else {
+    emailInput.value = "";
+    passwordInput.value = "";
+    lockIcon.textContent = "🔐";
+    lockIcon.style.color = "#fff";
+    show("Bilgilerinizi Girin.", "success");
+  }
+});
+
+// Login function
+function login(){
+  const safeMode = localStorage.getItem("safeModeActive") === "yes";
+  const currentUser = firebase.auth().currentUser;
+
+  if(safeMode && currentUser){
+    lockIcon.textContent = "🔓";
+    lockIcon.style.color = "#22c55e";
+    show("Güvenli Mod ile giriş yapılıyor...", "success");
+
+    firebase.database().ref("users/" + currentUser.uid).once("value")
+      .then(snap => {
+        if(!snap.exists()){
+          show("Kullanıcı bulunamadı");
+          firebase.auth().signOut();
+          return;
+        }
+        const data = snap.val();
+        if(!data.approved){
+          show("Admin onayı bekleniyor");
+          firebase.auth().signOut();
+          return;
+        }
+        if(data.role !== "denetici" && data.role !== "admin"){
+          show("Bu sayfaya giriş yetkiniz yok");
+          firebase.auth().signOut();
+          return;
+        }
+        show(`Giriş başarılı (${data.role})`, "success");
+        localStorage.setItem("canEnterApp","yes");
+        setTimeout(()=>{ if(data.role==="denetici") location.replace("menü.html");
+          else location.replace("tekadmin.html"); },600);
+      });
+    return;
+  }
+
+  const mail = emailInput.value.trim();
+  const pass = passwordInput.value;
+  if(!mail || !pass){ show("E-posta ve şifre giriniz"); return; }
+
+  lockIcon.textContent = "🔐";
+  lockIcon.style.color = "#fff";
+  lockIcon.classList.remove("locking");
+
+  firebase.auth().signInWithEmailAndPassword(mail, pass)
+    .then(res => firebase.database().ref("users/" + res.user.uid).once("value"))
+    .then(snap => {
+      if(!snap.exists()){ show("Kullanıcı bulunamadı"); firebase.auth().signOut(); return; }
+      const data = snap.val();
+      if(!data.approved){ show("Admin onayı bekleniyor"); firebase.auth().signOut(); return; }
+      if(data.role !== "denetici" && data.role !== "admin"){ show("Bu sayfaya giriş yetkiniz yok"); firebase.auth().signOut(); return; }
+
+      lockIcon.textContent = "✔️";
+      lockIcon.style.color = "#22c55e";
+      show(`Giriş başarılı (${data.role})`, "success");
+      localStorage.setItem("canEnterApp","yes");
+      setTimeout(()=>{ if(data.role==="denetici") location.replace("menü.html");
+        else location.replace("tekadmin.html"); },700);
+    })
+    .catch(()=>{ lockIcon.classList.add("locking"); setTimeout(()=>lockIcon.classList.remove("locking"),1200); show("E-posta veya şifre hatalı"); });
+}
+
+// Şifre sıfırlama
+function resetPassword(){
+  const mail=emailInput.value.trim();
+  if(!mail){ show("E-posta giriniz"); return; }
+  firebase.auth().sendPasswordResetEmail(mail)
+    .then(()=> show("Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.","success"))
+    .catch(()=> show("Bu e-posta bulunamadı Lütfen Güvenli Moddan Çıkıp Tekrar Deneyin "));
+}
+
+// PWA install
+let deferredPrompt;
+const installBtn = document.getElementById("installBtn");
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredPrompt = e; installBtn.style.display = "block"; });
+installBtn.addEventListener("click", async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; installBtn.style.display = "none"; });
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+if(isIOS){ installBtn.style.display = "none"; }
+
+// Ayarlar menüsü
+const settingsBtn = document.getElementById("settingsBtn");
+const settingsMenu = document.getElementById("settingsMenu");
+const safeModeToggleBtn = document.getElementById("safeModeToggleBtn");
+const safeModeStatus = document.getElementById("safeModeStatus");
+
+// Ayarlar menüsünü aç/kapa
+settingsBtn.addEventListener("click", ()=>{
+    const current = getComputedStyle(settingsMenu).display;
+    settingsMenu.style.display = current === "none" ? "block" : "none";
+});
+
+// Safe Mode toggle
+if(localStorage.getItem("safeModeActive")==="yes"){
+  safeModeToggleBtn.classList.add("active");
+  safeModeStatus.textContent="Güvenli Mod Açık";
+  emailInput.value="Güvenli Mod";
+  passwordInput.value="••••••••";
+  updateSafeModeColors();
+}else{
+  safeModeToggleBtn.classList.remove("active");
+  safeModeStatus.textContent="Güvenli Mod Kapalı";
+  updateSafeModeColors();
+}
+
+safeModeToggleBtn.addEventListener("click", ()=>{
+  const isActive = safeModeToggleBtn.classList.toggle("active");
+  if(isActive){
+    localStorage.setItem("safeModeActive","yes");
+    safeModeStatus.textContent="Güvenli Mod Açık";
+    emailInput.value="Güvenli Mod";
+    passwordInput.value="••••••••";
+  }else{
+    localStorage.setItem("safeModeActive","no");
+    safeModeStatus.textContent="Güvenli Mod Kapalı";
+    emailInput.value="";
+    passwordInput.value="";
+  }
+  updateSafeModeColors();
+});
+</script>
+</body>
+</html>
+
+
+
+
+
+

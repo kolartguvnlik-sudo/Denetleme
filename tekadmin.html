@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>👑 Admin Panel | Kullanıcı Yönetimi</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Firebase SDK'ları -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<style>
+body{
+ margin:0;
+ padding:30px;
+ background:#050914;
+ font-family:'Segoe UI',system-ui;
+ color:#fff;
+ display:none; /* ⚠ Sayfa içerik başlangıçta gizli */
+}
+
+h2{
+ color:#00e5ff;
+ margin:30px 0 15px;
+}
+
+.user{
+ background:linear-gradient(135deg,#1b2445,#202c5a);
+ padding:18px;
+ border-radius:18px;
+ margin-bottom:14px;
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ box-shadow:0 20px 40px rgba(0,0,0,.5);
+}
+
+.info{line-height:1.5}
+.info b{font-size:15px}
+.info span{font-size:13px;opacity:.8}
+
+.actions button{
+ margin-left:8px;
+ padding:10px 16px;
+ border:none;
+ border-radius:14px;
+ font-weight:800;
+ cursor:pointer;
+}
+
+.approve{background:linear-gradient(135deg,#00e5ff,#6a5cff)}
+.delete{background:linear-gradient(135deg,#ff3c3c,#ff0066)}
+
+.role-denetici{color:#22c55e; font-weight:700}
+.role-mudur{color:#ffd700; font-weight:700}
+</style>
+</head>
+<body>
+<div style="text-align:right; margin-bottom:20px;">
+  <button 
+    onclick="window.location.href='logkayıt.html'" 
+    style="padding:10px 18px; font-weight:700; border:none; border-radius:14px; cursor:pointer; background:linear-gradient(135deg,#ffb400,#ff6a00); color:#000; box-shadow:0 4px 10px rgba(0,0,0,.3);">
+    📜 Log Kayıtları
+  </button>
+</div>
+<h2>🕒 Onay Bekleyen Kullanıcılar</h2>
+<div id="pending"></div>
+
+<h2>🛡️ Mevcut Kullanıcılar</h2>
+<div id="approved"></div>
+
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyDF6XwfMwASz1mHt16DrR9jjjpozP4MBlA",
+  authDomain: "denetleme-78b55.firebaseapp.com",
+  databaseURL: "https://denetleme-78b55-default-rtdb.firebaseio.com",
+  projectId: "denetleme-78b55",
+  storageBucket: "denetleme-78b55.appspot.com",
+  messagingSenderId: "762780340283",
+  appId: "1:762780340283:web:da64465ec4657307f64c1e"
+});
+
+const auth = firebase.auth();
+const db   = firebase.database();
+
+// 🔐 Sayfa erişim kontrolü: hemen yönlendir
+auth.onAuthStateChanged(user => {
+    if (!user) {
+        // Login yoksa direkt login sayfasına git
+        window.location.href = "index.html"; // Kendi login URL’in ile değiştir
+    } else {
+        // Login varsa sayfayı göster
+        document.body.style.display = "block";
+        console.log("Giriş yapmış kullanıcı:", user.email);
+        initPage();
+    }
+});
+
+function initPage() {
+    /* 🔵 ONAY BEKLEYENLER */
+    db.ref("users")
+    .orderByChild("approved")
+    .equalTo(false)
+    .on("value", snap => {
+     const box = document.getElementById("pending");
+     box.innerHTML = "";
+
+     if(!snap.exists()){
+      box.innerHTML = "<p>🎉 Onay bekleyen yok</p>";
+      return;
+     }
+
+     snap.forEach(u => {
+      const d = u.val();
+      const roleClass = d.role === "müdür" ? "role-mudur" : "role-denetici";
+      const roleLabel = d.role === "müdür" ? "👑 Müdür" : "🛡️ Denetici";
+
+      box.innerHTML += `
+       <div class="user">
+        <div class="info">
+         <b>${d.fullName || "İsimsiz"}</b> <span class="${roleClass}">(${roleLabel})</span><br>
+         <span>${d.email || "E-posta yok"}</span>
+        </div>
+        <div class="actions">
+         <button class="approve" onclick="approve('${u.key}', '${d.role}')">✅ Onayla</button>
+         <button class="delete" onclick="removeUser('${u.key}')">❌ Sil</button>
+        </div>
+       </div>
+      `;
+     });
+    });
+
+    /* 🟢 MEVCUT KULLANICILAR */
+    db.ref("users")
+    .on("value", snap => {
+     const box = document.getElementById("approved");
+     box.innerHTML = "";
+
+     if(!snap.exists()){
+      box.innerHTML = "<p>Henüz kullanıcı yok</p>";
+      return;
+     }
+
+     let bulundu = false;
+
+     snap.forEach(u => {
+      const d = u.val();
+      if(d.approved !== true) return;
+
+      const roleClass = d.role === "müdür" ? "role-mudur" : "role-denetici";
+      const roleLabel = d.role === "müdür" ? "👑 Müdür" : "🛡️ Denetici";
+
+      bulundu = true;
+
+      box.innerHTML += `
+       <div class="user">
+        <div class="info">
+         <b>${d.fullName}</b> <span class="${roleClass}">(${roleLabel})</span><br>
+         <span>${d.email}</span>
+        </div>
+        <div class="actions">
+         <button class="delete" onclick="removeUser('${u.key}')">❌ Sil</button>
+        </div>
+       </div>
+      `;
+     });
+
+     if(!bulundu){
+      box.innerHTML = "<p>Onaylı kullanıcı yok</p>";
+     }
+    });
+
+}
+
+// 🔧 İŞLEVLER
+function approve(uid, role){
+ if(!confirm("Kullanıcı onaylansın mı?")) return;
+ db.ref("users/"+uid).update({
+  approved:true,
+  role:role,
+  approvedAt:Date.now()
+ });
+}
+
+function removeUser(uid){
+ if(!confirm("⚠️ Bu kullanıcı TAMAMEN silinecek. Devam?")) return;
+ db.ref("users/"+uid).remove().then(()=>{
+  alert("🗑️ Kullanıcı sistemden tamamen silindi");
+ });
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Şifre Sıfırla</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+
+<style>
+*{
+ box-sizing:border-box;
+ -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
+ width:100%;
+ height:100%;
+ margin:0;
+ overscroll-behavior:none;
+}
+
+body{
+ display:flex;
+ justify-content:center;
+ align-items:center;
+ padding:env(safe-area-inset-top) env(safe-area-inset-right)
+         env(safe-area-inset-bottom) env(safe-area-inset-left);
+ background:radial-gradient(circle at top,#0f2027,#203a43,#2c5364);
+ font-family:'Segoe UI',system-ui;
+ color:#fff;
+}
+
+.card{
+ width:100%;
+ max-width:360px;
+ padding:26px 22px;
+ border-radius:26px;
+ background:linear-gradient(135deg,#141e30,#243b55);
+ box-shadow:0 25px 70px rgba(0,0,0,.6);
+ animation:fade .5s ease;
+}
+
+@keyframes fade{
+ from{opacity:0;transform:translateY(20px)}
+ to{opacity:1;transform:none}
+}
+
+h2{
+ margin:0 0 16px;
+ text-align:center;
+ font-size:20px;
+}
+
+input{
+ width:100%;
+ padding:14px 16px;
+ margin-top:14px;
+ border-radius:14px;
+ border:none;
+ outline:none;
+ font-size:15px;
+ background:#101a2a;
+ color:#fff;
+}
+
+input::placeholder{color:#8fa2b8}
+
+button{
+ width:100%;
+ padding:15px;
+ margin-top:20px;
+ border-radius:16px;
+ border:none;
+ font-weight:700;
+ font-size:15px;
+ cursor:pointer;
+ background:linear-gradient(135deg,#00e5ff,#6a5cff);
+ color:#fff;
+ transition:.25s;
+}
+
+button:active{
+ transform:scale(.97);
+ opacity:.85;
+}
+
+/* TOAST */
+#toast{
+ position:fixed;
+ bottom:30px;
+ left:50%;
+ transform:translateX(-50%) translateY(20px);
+ min-width:260px;
+ max-width:90%;
+ padding:14px 18px;
+ border-radius:16px;
+ background:#111827;
+ color:#fff;
+ font-size:14px;
+ text-align:center;
+ box-shadow:0 10px 40px rgba(0,0,0,.6);
+ opacity:0;
+ pointer-events:none;
+ transition:.35s;
+ z-index:9999;
+}
+
+#toast.show{
+ opacity:1;
+ transform:translateX(-50%) translateY(0);
+}
+
+#toast.success{background:linear-gradient(135deg,#22c55e,#16a34a)}
+#toast.error{background:linear-gradient(135deg,#ef4444,#b91c1c)}
+#toast.warn{background:linear-gradient(135deg,#facc15,#ca8a04)}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+ <h2>🔐 Yeni Şifre Belirle</h2>
+ <input id="pass1" type="password" placeholder="Yeni şifre" autocomplete="new-password">
+ <input id="pass2" type="password" placeholder="Tekrar" autocomplete="new-password">
+ <button onclick="reset()">Şifreyi Güncelle</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyDF6XwfMwASz1mHt16DrR9jjjpozP4MBlA",
+  authDomain: "denetleme-78b55.firebaseapp.com",
+  projectId: "denetleme-78b55",
+  messagingSenderId: "762780340283",
+  appId: "1:762780340283:web:da64465ec4657307f64c1e"
+});
+
+const params = new URLSearchParams(location.search);
+const oobCode = params.get("oobCode");
+
+const toast = document.getElementById("toast");
+
+function showToast(msg,type="warn"){
+ toast.textContent = msg;
+ toast.className = "show " + type;
+ setTimeout(()=>toast.className="",2800);
+}
+
+function reset(){
+ if(!oobCode){
+  showToast("Geçersiz bağlantı","error");
+  return;
+ }
+
+ if(pass1.value.length < 6){
+  showToast("Şifre en az 6 karakter olmalı","warn");
+  return;
+ }
+
+ if(pass1.value !== pass2.value){
+  showToast("Şifreler eşleşmiyor","warn");
+  return;
+ }
+
+ showToast("Şifre güncelleniyor...","warn");
+
+ firebase.auth()
+  .confirmPasswordReset(oobCode, pass1.value)
+  .then(()=>{
+   showToast("Şifre başarıyla güncellendi","success");
+   setTimeout(()=>location.href="index.html",1500);
+  })
+  .catch(()=>{
+   showToast("Link süresi dolmuş veya geçersiz","error");
+  });
+}
+</script>
+
+</body>
+</html>

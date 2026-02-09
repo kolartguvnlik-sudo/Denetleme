@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Denetleme Paneli</title>
+
+<meta name="viewport"
+content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
+  margin:0;
+  min-height:100%;
+  overscroll-behavior:none;
+}
+
+body{
+  font-family:'Inter',sans-serif;
+  background:
+    radial-gradient(circle at 15% 10%,#3b82f6,#020617 60%),
+    radial-gradient(circle at 85% 90%,#22c55e,#020617 60%);
+  color:#fff;
+}
+
+/* APP */
+.app{
+  max-width:420px;
+  margin:0 auto;
+  padding:
+    calc(env(safe-area-inset-top) + 18px)
+    18px
+    calc(env(safe-area-inset-bottom) + 18px);
+}
+
+/* HEADER */
+.header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  margin-bottom:18px;
+}
+
+.greet{
+  font-size:30px;
+  font-weight:800;
+  display:flex;
+  gap:8px;
+}
+
+.name{
+  font-size:16px;
+  color:#c7d2fe;
+  margin-top:4px;
+}
+
+.logout{
+  background:#ef4444;
+  border:none;
+  color:#fff;
+  padding:10px 14px;
+  border-radius:14px;
+  font-weight:600;
+}
+
+/* CARDS */
+.cards{
+  display:grid;
+  gap:14px;
+}
+
+/* CARD */
+.card{
+  padding:16px 18px;
+  border-radius:20px;
+  background:linear-gradient(135deg,rgba(255,255,255,.12),rgba(255,255,255,.05));
+  backdrop-filter:blur(12px);
+  text-decoration:none;
+  color:#fff;
+  box-shadow:0 12px 30px rgba(0,0,0,.35);
+}
+
+/* CARD HEAD */
+.card-head{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.icon{
+  width:32px;
+  height:32px;
+  color:#22c55e;
+}
+
+.card.primary .icon{
+  color:#4ade80;
+}
+
+.card h3{
+  margin:0;
+  font-size:17px;
+  font-weight:700;
+}
+
+.card p{
+  margin:8px 0 0;
+  font-size:14px;
+  color:#e0e7ff;
+  line-height:1.4;
+}
+
+/* PRIMARY BORDER ANIMATION */
+.card.primary{
+  border:2px solid transparent;
+  background:
+    linear-gradient(#0f172a,#0f172a) padding-box,
+    linear-gradient(90deg,#22c55e,#60a5fa,#22c55e) border-box;
+  background-size:200% 100%;
+  animation:borderFlow 3s linear infinite;
+}
+
+@keyframes borderFlow{
+  from{background-position:0% 0%}
+  to{background-position:200% 0%}
+}
+
+/* FOOTER */
+.footer{
+  position:fixed;
+  right:12px;
+  bottom:calc(env(safe-area-inset-bottom) + 10px);
+  font-size:11px;
+  color:#c7d2fe;
+  opacity:.85;
+  pointer-events:none;
+}
+.wave {
+  display: inline-block;
+  transform-origin: 70% 70%;
+}
+
+@keyframes waveAnim {
+  0% { transform: rotate(0deg); }
+  15% { transform: rotate(14deg); }
+  30% { transform: rotate(-8deg); }
+  40% { transform: rotate(14deg); }
+  50% { transform: rotate(-4deg); }
+  60% { transform: rotate(10deg); }
+  70% { transform: rotate(0deg); }
+  100% { transform: rotate(0deg); }
+}
+
+/* Sadece .animate sınıfı verilince sallar */
+.animate {
+  animation: waveAnim 1s ease-in-out 5;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div>
+      <div class="greet" id="greeting">Yükleniyor…</div>
+      <div class="name" id="userName">Personel</div>
+    </div>
+    <button class="logout" onclick="goIndex()">Çıkış</button>
+  </div>
+
+  <!-- MENU -->
+  <div class="cards">
+
+    <!-- DENETLE -->
+    <a href="denetle.html" class="card primary"
+       onclick="sessionStorage.setItem('menuAllowed','ok')">
+
+      <div class="card-head">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3l7 4v5c0 5-3.5 8-7 9-3.5-1-7-4-7-9V7l7-4z"/>
+          <path d="M9 12l2 2 4-4"/>
+        </svg>
+        <h3>Denetleme Yap</h3>
+      </div>
+      <p>Personelin görev ve nöbet sürecini denetle</p>
+    </a>
+
+    <!-- PERSONEL ARA -->
+    <a href="personelara.html" class="card"
+       onclick="sessionStorage.setItem('menuAllowed','ok')">
+
+      <div class="card-head">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/>
+          <path d="M21 21l-4.3-4.3"/>
+        </svg>
+        <h3>Personel Ara</h3>
+      </div>
+      <p>Personel bilgilerini hızlıca görüntüle</p>
+    </a>
+
+    <!-- DENETİM GEÇMİŞİ -->
+   <a href="bugun.html" class="card"
+   onclick="sessionStorage.setItem('menuAllowed','ok')">
+
+
+      <div class="card-head">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v18h18"/>
+          <rect x="7" y="12" width="3" height="6"/>
+          <rect x="12" y="9" width="3" height="9"/>
+          <rect x="17" y="6" width="3" height="12"/>
+        </svg>
+        <h3>Denetim Geçmişi</h3>
+      </div>
+      <p>Yapılan denetimleri detaylı incele</p>
+    </a>
+<!-- KİMLİK SÜRE KONTROL -->
+<a href="kimlik.html" class="card"
+   onclick="sessionStorage.setItem('menuAllowed','ok')">
+
+  <div class="card-head">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="4" width="18" height="16" rx="2"/>
+      <path d="M8 2v4"/>
+      <path d="M16 2v4"/>
+      <path d="M3 10h18"/>
+      <path d="M8 14h2"/>
+      <path d="M14 14h2"/>
+    </svg>
+    <h3>Kimlik Süre Kontrol</h3>
+  </div>
+
+  <p>Personelin kimlik geçerlilik sürelerini takip</p>
+</a>
+<a href="bul.html" class="card"
+   onclick="sessionStorage.setItem('menuAllowed','ok')">
+
+  <div class="card-head">
+    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 12l18 0"/>
+      <path d="M12 3l0 18"/>
+    </svg>
+    <h3>Proje Yol Tarafi</h3>
+  </div>
+
+  <p>Projelerin yol haritalarını hızlıca görüntüle</p>
+</a>
+  </div>
+</div>
+
+<div class="footer">© 2026 CGA Güvenlik Sistemi</div>
+
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyDF6XwfMwASz1mHt16DrR9jjjpozP4MBlA",
+  authDomain: "denetleme-78b55.firebaseapp.com",
+  databaseURL: "https://denetleme-78b55-default-rtdb.firebaseio.com",
+  projectId: "denetleme-78b55",
+  storageBucket: "denetleme-78b55.appspot.com",
+  messagingSenderId: "762780340283",
+  appId: "1:762780340283:web:da64465ec4657307f64c1e"
+});
+
+const auth = firebase.auth();
+const db   = firebase.database();
+
+const greetingEl = document.getElementById("greeting");
+const userNameEl = document.getElementById("userName");
+
+auth.onAuthStateChanged(user => {
+  if(!user){
+    location.replace("index.html");
+    return;
+  }
+
+  db.ref("users/"+user.uid).once("value", snap => {
+    const name = snap.val()?.fullName || user.displayName || user.email.split("@")[0];
+    userNameEl.innerText = name;
+
+    // Karşılama + sallayan emoji
+    greetingEl.innerHTML = getGreeting() + ' <span class="wave">👋</span>';
+
+    // Animasyonu tetikle
+    const waveEmoji = greetingEl.querySelector('.wave');
+    waveEmoji.classList.add('animate');
+
+    // Sallama bittiğinde sınıfı kaldır
+    waveEmoji.addEventListener('animationend', () => {
+      waveEmoji.classList.remove('animate');
+    });
+  });
+});
+
+
+function getGreeting(){
+  const h = new Date().getHours();
+  if(h >= 5 && h <= 11) return "Günaydın";
+  if(h >= 12 && h <= 16) return "Tünaydın";
+  if(h >= 17 && h <= 22) return "İyi Akşamlar";
+  return "İyi Geceler";
+}
+
+function goIndex(){
+  sessionStorage.clear();
+  location.replace("index.html");
+}
+</script>
+
+</body>
+</html>
+

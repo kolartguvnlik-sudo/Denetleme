@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Proje Yol Tarifi</title>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+body{
+  font-family:'Inter',sans-serif;
+  background:linear-gradient(135deg,#0a1b2b,#051013);
+  color:#eaf1f7;
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  padding-top:80px;
+  height:100vh;
+  margin:0;
+}
+
+.container{
+  background:rgba(15,23,42,0.85);
+  padding:32px;
+  border-radius:20px;
+  max-width:450px;
+  width:90%;
+  text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,0.5);
+  backdrop-filter:blur(15px);
+  display:none; /* Başlangıçta gizle, auth sonrası göster */
+}
+
+h1{
+  margin-bottom:20px;
+  font-weight:700;
+  color:#1abc9c;
+}
+
+select,button{
+  width:100%;
+  padding:14px;
+  border-radius:12px;
+  border:none;
+  margin-top:12px;
+  font-size:16px;
+}
+
+button{
+  background:#1abc9c;
+  color:#001;
+  font-weight:600;
+  cursor:pointer;
+  transition:.2s;
+}
+
+button:hover{
+  background:#14a48c;
+}
+
+.info{
+  margin-top:20px;
+  text-align:left;
+  background:rgba(255,255,255,0.05);
+  padding:16px;
+  border-radius:12px;
+  line-height:1.6;
+  font-size:15px;
+}
+
+.info span{
+  font-weight:600;
+  color:#1abc9c;
+}
+
+.menu-exit-btn{
+  position:fixed;
+  top:12px;
+  right:12px;
+  z-index:9999;
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  font-size:20px;
+  background:linear-gradient(135deg,#ff4d4d,#b30000);
+  color:#fff;
+  border:none;
+  box-shadow:0 6px 18px rgba(255,0,0,.5);
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+}
+.menu-exit-btn:hover{
+  filter:brightness(1.1);
+}
+</style>
+</head>
+<body>
+<!-- SAĞ ÜST MENÜ BUTONU -->
+<button class="menu-exit-btn" onclick="goMenu()">⎋</button>
+
+<div class="container" id="mainContainer">
+  <h1>📍 Proje Yol Tarifi</h1>
+  <select id="projectSelect">
+    <option value="">Proje Seç</option>
+  </select>
+  <button onclick="openNavigation()">🗺️ Yol Tarifi Aç</button>
+  <div class="info" id="projectInfo" style="display:none;"></div>
+</div>
+
+<script>
+// FIREBASE
+firebase.initializeApp({
+  apiKey: "AIzaSyDF6XwfMwASz1mHt16DrR9jjjpozP4MBlA",
+  authDomain: "denetleme-78b55.firebaseapp.com",
+  databaseURL: "https://denetleme-78b55-default-rtdb.firebaseio.com",
+  projectId: "denetleme-78b55",
+  storageBucket: "denetleme-78b55.appspot.com",
+  messagingSenderId: "762780340283",
+  appId: "1:762780340283:web:da64465ec4657307f64c1e"
+});
+
+const db = firebase.database();
+const auth = firebase.auth();
+
+const projectSelect = document.getElementById("projectSelect");
+const projectInfo = document.getElementById("projectInfo");
+const container = document.getElementById("mainContainer");
+const body = document.body;
+
+// 🔐 AUTH KORUMASI
+auth.onAuthStateChanged(user => {
+  if(!user){
+    alert("Giriş yapmanız gerekiyor");
+    window.location.href = "login.html"; // login sayfasına yönlendir
+    return;
+  }
+
+  // Giriş yapılmışsa sayfayı göster
+  container.style.display = "block";
+
+  // PROJE LİSTESİ ÇEK
+  db.ref("projects").once("value")
+    .then(snap => {
+      snap.forEach(p => {
+        const val = p.val();
+        if(val.lat && val.lng){ 
+          const o = document.createElement("option");
+          o.value = p.key;
+          o.textContent = val.projectName || p.key;
+          projectSelect.appendChild(o);
+        }
+      });
+    })
+    .catch(err => console.error("Veri çekme hatası:", err));
+});
+
+// MENÜ BUTONU
+function goMenu(){
+  window.location.href="menü.html"; 
+}
+
+// PROJE SEÇİMİNDE BİLGİ GÖSTER
+projectSelect.addEventListener("change", () => {
+  const pid = projectSelect.value;
+  if(!pid){
+    projectInfo.style.display="none";
+    projectInfo.innerHTML="";
+    return;
+  }
+
+  db.ref("projects/"+pid).once("value").then(snap => {
+    const data = snap.val();
+    
+    let personnelCount = data.personnel ? Object.keys(data.personnel).length : 0;
+    let lastAudit = data.lastPatrolEnd ? new Date(data.lastPatrolEnd)
+      .toLocaleString("tr-TR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}) : "-";
+    let auditor = data.lastPatrolBy?.name || "-";
+
+    let html = `<strong>Proje Adı:</strong> ${data.projectName || '-'}<br>`;
+    html += `<strong>Çalışan Personel:</strong> ${personnelCount}<br>`;
+    html += `<strong>En Son Denetlendi:</strong> ${lastAudit}<br>`;
+    html += `<strong>Denetleyen:</strong> ${auditor}<br>`;
+    
+    projectInfo.style.display="block";
+    projectInfo.innerHTML = html;
+  });
+});
+
+// YOL TARİFİ AÇ
+function openNavigation(){
+  const pid = projectSelect.value;
+  if(!pid) return alert("Önce proje seçin");
+
+  db.ref("projects/"+pid).once("value")
+    .then(snap => {
+      const data = snap.val();
+      if(!data.lat || !data.lng) return alert("Bu proje için koordinat bilgisi yok!");
+
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${data.lat},${data.lng}`;
+      window.open(url,"_blank");
+    });
+}
+</script>
+</body>
+</html>

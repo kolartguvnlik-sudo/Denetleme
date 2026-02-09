@@ -1,0 +1,2233 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Denetleme Sistemi</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+
+<style>
+/* ===== GENEL ===== */
+body{
+ margin:0;
+ font-family:'Segoe UI',system-ui;
+ background:radial-gradient(circle at top,#111a3a,#050914);
+ color:#fff;
+}
+
+section{
+ padding:24px 20px;
+ max-width:420px;
+ margin:auto;
+ animation:fade .3s ease;
+}
+
+@keyframes fade{
+ from{opacity:0;transform:translateY(10px)}
+ to{opacity:1;transform:none}
+}
+
+/* ===== FORM ===== */
+input,select{
+ width:100%;
+ padding:14px 16px;
+ margin-top:12px;
+ border-radius:14px;
+ background:#0f1735;
+ border:1px solid #ffffff22;
+ color:#fff;
+ font-size:14px;
+ outline:none;
+}
+
+input:focus,select:focus{
+ border-color:#00e5ff;
+ box-shadow:0 0 0 2px #00e5ff22;
+}
+
+/* ===== BUTON ===== */
+button{
+ width:100%;
+ padding:14px;
+ margin-top:14px;
+ border-radius:16px;
+ border:none;
+ font-size:15px;
+ font-weight:700;
+ cursor:pointer;
+ transition:.2s;
+ background:linear-gradient(135deg,#00e5ff,#6a5cff);
+ color:#000;
+ box-shadow:0 10px 30px #00e5ff33;
+}
+
+button:hover{
+ transform:translateY(-1px);
+ box-shadow:0 14px 40px #00e5ff55;
+}
+
+button:active{
+ transform:scale(.98);
+}
+
+/* ===== LİSTE ===== */
+.list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #1b2445;
+  padding: 16px 24px;
+  margin: 12px 0;
+  border-radius: 20px;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.25);
+  width: 100%;
+  max-width: 520px;
+  gap: 16px;
+  position: relative;
+}
+
+/* İkon ve isim için grup */
+.guard-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1; /* isim grubunu genişletip ortaya hizalamak için */
+}
+
+/* İsim */
+.guard-name {
+  font-size: 16px;
+  font-weight: 500;
+  color: #eaf1f7;
+  margin-left: 8px; /* ikon ile isim arası boşluk */
+}
+
+/* DENETLENDİ etiketi */
+.checked-label {
+  background: linear-gradient(90deg, #00f0ff, #00d4ff);
+  color: #000;
+  padding: 6px 14px;
+  border-radius: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 13px;
+  margin-left: 12px;
+}
+
+/* Ara butonu */
+.right-actions {
+  margin-left: 8px; /* biraz sola kaydır */
+}
+
+.right-actions button {
+  padding: 8px 14px;
+  font-size: 14px;
+  border: 1px solid #00d4ff;
+  border-radius: 12px;
+  background: transparent;
+  color: #00f0ff;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.right-actions button:hover {
+  background: #00d4ff;
+  color: #000;
+}
+
+
+/* ===== BADGE ===== */
+.badge{
+ background:linear-gradient(135deg,#00e5ff,#6a5cff);
+ color:#000;
+ padding:4px 10px;
+ border-radius:20px;
+ font-size:11px;
+ font-weight:800;
+ box-shadow:0 0 10px #00e5ff88;
+}
+
+/* ===== BAŞLIKLAR ===== */
+h2,h3{
+ margin:0 0 10px;
+ letter-spacing:.3px;
+}
+
+h2{
+ font-size:20px;
+ color:#00e5ff;
+}
+
+h3{
+ font-size:15px;
+ color:#8fdfff;
+}
+
+/* ===== KART ===== */
+.card{
+ background:linear-gradient(135deg,#1b2445,#202c5a);
+ padding:22px;
+ border-radius:22px;
+ box-shadow:0 20px 50px rgba(0,0,0,.4);
+}
+
+.row{
+ display:flex;
+ justify-content:space-between;
+ margin:8px 0;
+ font-size:14px;
+}
+
+/* ===== ALERT ===== */
+.alert-box{
+ background:linear-gradient(135deg,#1b2445,#202c5a);
+ padding:26px;
+ border-radius:22px;
+ box-shadow:0 30px 80px rgba(0,0,0,.6);
+}
+#qr-reader{
+ border-radius:20px;
+ overflow:hidden;
+ box-shadow:0 20px 50px rgba(0,0,0,.5);
+}
+/* ===== KIMLIK SÜRESİ UYARI ===== */
+.expiry-warning{
+ background:linear-gradient(135deg,#ff3b3b,#b30000);
+ padding:12px 16px;
+ border-radius:14px;
+ font-size:14px;
+ font-weight:800;
+ margin-top:14px;
+ color:#fff;
+ text-align:center;
+ box-shadow:
+  0 0 15px rgba(255,0,0,.8),
+  inset 0 0 10px rgba(0,0,0,.4);
+ animation:pulseRed 1.2s infinite;
+ transform:translateZ(0);
+}
+
+/* 3D kırmızı yanıp sönme */
+@keyframes pulseRed{
+ 0%{
+  box-shadow:0 0 8px rgba(255,0,0,.4);
+  transform:scale(1);
+ }
+ 50%{
+  box-shadow:0 0 30px rgba(255,0,0,1);
+  transform:scale(1.03);
+ }
+ 100%{
+  box-shadow:0 0 8px rgba(255,0,0,.4);
+  transform:scale(1);
+ }
+}
+.hidden{display:none !important}
+#appAlert{
+ position:fixed;
+ inset:0;
+ background:rgba(0,0,0,.65);
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ z-index:9999;
+}
+.danger-text{
+ color:#ff4d4d;
+ font-weight:800;
+ text-shadow:0 0 10px rgba(255,0,0,.6);
+}
+html, body {
+  overscroll-behavior-y: contain;
+  touch-action: pan-x pan-y;
+}
+.offline-card {
+  border: 2px solid #ff3b3b;
+  box-shadow:
+    0 0 0 2px rgba(255,0,0,.4),
+    0 0 18px rgba(255,0,0,.6);
+  animation: offlinePulse 1.4s infinite;
+}
+
+@keyframes offlinePulse {
+  0%   { box-shadow: 0 0 6px rgba(255,0,0,.4); }
+  50%  { box-shadow: 0 0 22px rgba(255,0,0,.9); }
+  100% { box-shadow: 0 0 6px rgba(255,0,0,.4); }
+}
+
+</style>
+</head>
+
+<body>
+<section id="profileBar" style="
+ max-width:420px;
+ margin:10px auto 0;
+ background:linear-gradient(135deg,#1b2445,#202c5a);
+ padding:14px 18px;
+ border-radius:18px;
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ box-shadow:0 10px 30px rgba(0,0,0,.4)
+">
+<div style="display:flex;flex-direction:column;gap:3px">
+
+ <span style="
+  font-size:11px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:#8fdfff;
+  opacity:.9
+ ">
+  Denetleyen
+ </span>
+
+ <span id="profileName" style="
+  font-size:16px;
+  font-weight:800;
+  background:linear-gradient(135deg,#00e5ff,#6a5cff);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  text-shadow:0 0 12px rgba(0,229,255,.45);
+ ">
+  Yükleniyor...
+ </span>
+<span id="offlineStatus" style="
+ display:none;
+ font-size:11px;
+ font-weight:800;
+ color:#ff4d4d;
+ text-shadow:0 0 10px rgba(255,0,0,.7);
+">
+ 📡 GÜVENLİ OFFLINE MOD AKTİF
+</span>
+
+ <div style="
+  width:36px;
+  height:3px;
+  border-radius:10px;
+  background:linear-gradient(90deg,#00e5ff,#6a5cff);
+  margin-top:4px
+ "></div>
+
+</div>
+
+
+ <div style="display:flex;gap:8px">
+  <button onclick="openProfile()" style="
+   width:auto;
+   padding:8px 12px;
+   border-radius:12px;
+   font-size:13px
+  ">
+   ⚙️
+  </button>
+
+  <button onclick="logout()" style="
+   width:auto;
+   padding:8px 12px;
+   border-radius:12px;
+   font-size:13px;
+   background:linear-gradient(135deg,#ff4d4d,#b30000);
+   color:#fff;
+   box-shadow:0 6px 18px rgba(255,0,0,.5)
+  ">
+   ⎋
+  </button>
+ </div>
+</section>
+
+
+<section id="projectPage">
+<h2>📁 Proje Seç</h2>
+<select id="projectSelect"></select>
+<button onclick="selectProject()">Devam</button>
+</section>
+
+<section id="listPage" class="hidden">
+<h2 id="projectTitle"></h2>
+
+<div id="lastPatrolInfo" class="last-patrol"></div>
+
+<h3 id="guardTitle" style="margin:14px 0 8px;font-size:15px;color:#8fdfff">
+ 📌 Projedeki Personeller
+</h3>
+
+<div id="guardList"></div>
+<button onclick="backToProject()">⬅ Proje Seçimine Dön</button>
+<button onclick="startPatrol()">🚀 Denetleme Başlat</button>
+<button onclick="finishPatrol()">🏁 Denetlemeyi Bitir</button>
+
+</section>
+
+<section id="qrPage" class="hidden">
+<h3>QR Okut</h3>
+<button
+ onclick="openManual()"
+ style="
+  width:auto;
+  float:right;
+  padding:8px 14px;
+  font-size:12px;
+  margin-top:-34px
+ "
+>
+ 🧍 Manuel Personel Tara
+</button>
+
+
+<div id="qr-reader" style="width:300px"></div>
+
+<button onclick="toggleFlash()">🔦 Flash Aç / Kapat</button>
+<button onclick="refocusCamera()">🎯 Odakla</button>
+
+</section>
+
+<section id="manualPage" class="hidden">
+<h3>🧍 Manuel Personel Tara</h3>
+
+<input
+ id="manualTc"
+ placeholder="TC Kimlik No"
+ maxlength="11"
+ inputmode="numeric"
+/>
+
+<button onclick="manualSearch()">Ara</button>
+<button onclick="backToQr()">⬅ QR Okutmaya Dön</button>
+</section>
+
+<section id="requiredPage" class="hidden">
+<h3>Zorunlu Bilgiler</h3>
+<input id="telefon" placeholder="Telefon">
+<select id="kimlikTuru">
+<option value="">Kimlik Türü</option>
+<option>Silahlı</option>
+<option>Silahsız</option>
+</select>
+<input type="date" id="kimlikGecerlilik">
+<button onclick="saveRequired()">Kaydet</button>
+</section>
+
+<section id="alreadyPage" class="hidden">
+
+<h3>⚠️ BU PERSONEL DENETLENDİ</h3>
+<p id="oldInfo"></p>
+<button onclick="continueNewInspection()">➕ Yeni Denetim</button>
+<button onclick="continueUpdateInspection()">🔄 Mevcut Denetimi Güncelle</button>
+
+</section>
+
+<section id="cardPage" class="hidden">
+<div class="card">
+
+<h2 id="ad"></h2>
+<!-- PROFİL FOTO ALANI -->
+<div id="photoWrapper"
+ onclick="openPhotoOptions()"
+ style="
+  width:120px;
+  height:120px;
+  border-radius:12px;
+  margin:12px auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#0f1735;
+  border:2px dashed #00e5ff88;
+  cursor:pointer;
+  position:relative;
+ ">
+
+ <img id="guardPhoto"
+  style="
+   width:100%;
+   height:100%;
+   border-radius:12px;
+   object-fit:contain;
+   display:none;
+  ">
+
+ <span id="photoPlus"
+  style="font-size:42px;color:#00e5ff">+</span>
+
+</div>
+
+
+
+
+
+<div class="row"><span>TC</span><span id="tc"></span></div>
+<div class="row"><span>Kimlik</span><span id="kimlik"></span></div>
+<div class="row"><span>Geçerlilik</span><span id="gecerlilik"></span></div>
+<div id="expiryInfo"></div>
+
+
+
+
+
+<button id="btnGorev" disabled onclick="saveInspection('gorevi_basinda')">
+ ✅ Görevi Başında
+</button>
+
+<button id="btnUygunsuz" disabled onclick="openUygunsuz()">
+ ⚠️ Uygunsuz
+</button>
+
+<div id="uygunsuzPanel" class="hidden">
+
+ <select id="uygunsuzSebep">
+ <h4 style="margin:0 0 10px;color:#ff5a5a">
+ ⚠️ Uygunsuzluk Detayı
+</h4>
+
+  <option value="">Uygunsuzluk sebebi seç</option>
+  <option>Uyuyor</option>
+  <option>Kılık kıyafet</option>
+  <option>Tıraş olmamış</option>
+  <option>Kimliği yok</option>
+  <option>Görev yerinde değildi</option>
+  <option value="diger">Diğer</option>
+ </select>
+
+ <input
+  id="uygunsuzDiger"
+  class="hidden"
+  placeholder="Diğer sebebi yaz"
+ />
+
+ <button onclick="saveUygunsuz()">Kaydet</button>
+
+</div>
+
+</div>
+</section>
+
+<script>
+
+// 🔐 SADECE MENÜDEN GELEN GİREBİLİR
+if (sessionStorage.getItem("menuAllowed") !== "ok") {
+  window.location.replace("index.html");
+} else {
+  // sadece ilk girişte izin ver
+  sessionStorage.removeItem("menuAllowed");
+}
+
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDF6XwfMwASz1mHt16DrR9jjjpozP4MBlA",
+  authDomain: "denetleme-78b55.firebaseapp.com",
+  databaseURL: "https://denetleme-78b55-default-rtdb.firebaseio.com",
+  projectId: "denetleme-78b55",
+  storageBucket: "denetleme-78b55.appspot.com",
+  messagingSenderId: "762780340283",
+  appId: "1:762780340283:web:da64465ec4657307f64c1e"
+};
+
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
+
+const db = firebase.database();
+/* 🔥 MERKEZ PERSONEL SENKRON FONKSİYONU */
+function syncPersonnel({ tc, adSoyad, data = {} }) {
+
+ const updates = {};
+
+ updates[`personnel/${tc}/tc`] = tc;
+ updates[`personnel/${tc}/adSoyad`] = adSoyad;
+
+ Object.keys(data).forEach(k => {
+  updates[`personnel/${tc}/${k}`] = data[k];
+ });
+
+ return firebase.database().ref().update(updates);
+}
+
+
+let proje="", aktifDevriyeId=null, tcNo="", guard={}, mevcutDenetimId=null, mode="new";
+
+/* 🔥 OFFLINE İÇİN: PERSONEL BU PROJEDE Mİ? */
+function isPersonnelInThisProject(tc){
+  const map = JSON.parse(
+    localStorage.getItem("projectPersonnel_" + proje) || "{}"
+  );
+  return !!map[tc];
+}
+
+let qrInstance = null;
+let flashOn = false;
+
+const auth = firebase.auth();
+
+let currentUser = null;
+let currentProfileName = "";
+
+
+/* 🔐 GİRİŞ KONTROL */
+/* 🔐 GİRİŞ KONTROL VE STATUS GÜNCELLEME */
+/* 🔐 GİRİŞ KONTROL VE STATUS GÜNCELLEME */
+auth.onAuthStateChanged(user => {
+  if (!user) {
+    // Giriş yoksa login sayfasına at
+    window.location.href = "index.html";
+    return;
+  }
+
+  currentUser = user;
+
+  // Kullanıcı profilini yükle
+  loadProfile();
+
+  // Kullanıcı adı / maili
+  const displayName = currentUser.displayName || currentUser.email || "İsimsiz Kullanıcı";
+
+  // Status referansı
+  const userStatusDatabaseRef = db.ref("/status/" + user.uid);
+
+  // Offline ve online objeleri
+  const isOfflineForDB = {
+    state: "offline",
+    name: displayName,
+    last_changed: firebase.database.ServerValue.TIMESTAMP
+  };
+
+  const isOnlineForDB = {
+    state: "online",
+    name: displayName,
+    last_changed: firebase.database.ServerValue.TIMESTAMP
+  };
+
+  // Bağlantı kontrolü
+  db.ref(".info/connected").on("value", snapshot => {
+    if (snapshot.val() === false) {
+      // Bağlantı yoksa offline yaz
+      userStatusDatabaseRef.set(isOfflineForDB);
+      return;
+    }
+
+    // Disconnect durumunda offline yaz
+    userStatusDatabaseRef.onDisconnect().set(isOfflineForDB).then(() => {
+      // Bağlantı varsa online yaz
+      userStatusDatabaseRef.set(isOnlineForDB);
+    });
+  });
+});
+
+/* 🔓 Profil Yükleme */
+function loadProfile() {
+  const uid = currentUser.uid;
+
+  db.ref("users/" + uid).once("value", snap => {
+    if (!snap.exists()) return;
+
+    const d = snap.val();
+    currentProfileName = d.fullName || currentUser.displayName || currentUser.email || "İsimsiz Kullanıcı";
+    profileName.innerText = currentProfileName;
+
+    // 🔓 BUTONLARI AKTİF ET
+    btnGorev.disabled = false;
+    btnUygunsuz.disabled = false;
+  });
+}
+
+function openProfile(){
+ profileEmailInput.value = currentUser.email;
+ profileModal.classList.remove("hidden");
+}
+
+function closeProfile(){
+ profileModal.classList.add("hidden");
+ newPassword.value = "";
+}
+
+function updatePassword(){
+
+ const pass = newPassword.value;
+
+ if(pass.length < 6){
+  showAlert({
+   title:"Zayıf Şifre",
+   message:"Şifre en az 6 karakter olmalı",
+   buttons:[{text:"Tamam"}]
+  });
+  return;
+ }
+
+ currentUser.updatePassword(pass)
+  .then(()=>{
+   showAlert({
+    title:"Başarılı",
+    message:"Şifre güncellendi",
+    buttons:[{text:"Tamam"}]
+   });
+   closeProfile();
+  })
+  .catch(err=>{
+   showAlert({
+    title:"Hata",
+    message:"Güvenlik nedeniyle tekrar giriş yapmanız gerekebilir",
+    buttons:[{text:"Tamam"}]
+   });
+  });
+}
+
+/* PROJELER */
+db.ref("projects").once("value",s=>{
+ projectSelect.innerHTML="<option value=''>Seç</option>";
+ s.forEach(p=>{
+  projectSelect.innerHTML+=`<option value="${p.key}">${p.val().projectName}</option>`;
+ });
+});
+
+/* SAYFA YENİLENİRSE DEVAM */
+window.onload = () => {
+localStorage.removeItem("canEnterApp");
+
+ const p = localStorage.getItem("proje");
+ const d = localStorage.getItem("devriye");
+
+ if(!p){
+  localStorage.clear();
+  return;
+ }
+
+ proje = p;
+ aktifDevriyeId = d || null;
+
+ // 🔥 BÜYÜK BAŞLIK HER ZAMAN SET EDİLİR
+ db.ref(`projects/${p}`).once("value", snap=>{
+  if(snap.exists()){
+   projectTitle.innerText = snap.val().projectName;
+  }
+ });
+
+ projectPage.classList.add("hidden");
+ listPage.classList.remove("hidden");
+
+ loadList();
+ loadLastPatrolInfo();
+};
+
+function loadLastPatrolInfo(){
+
+ db.ref(`projects/${proje}`).once("value", pSnap=>{
+
+  if(!pSnap.exists()) return;
+
+  const data = pSnap.val();
+  const projeAdi = data.projectName;
+  const lastEnd = data.lastPatrolEnd;
+  const lastBy  = data.lastPatrolBy;
+
+  let html = `
+   <div>
+    <b>📍 ${projeAdi}</b><br>
+  `;
+
+  if(!lastEnd){
+   html += `🚫 Henüz denetlenmedi`;
+  }else{
+   html += `
+    🕒 Son denetim:
+    <span class="time">${timeAgo(lastEnd)}</span> önce
+   `;
+
+   if(lastBy && lastBy.name){
+    html += `
+     <br>
+     👤 <b>Son Denetleyen:</b> ${lastBy.name}
+    `;
+   }
+  }
+
+  html += `</div>`;
+
+  lastPatrolInfo.innerHTML = html;
+ });
+}
+
+
+
+
+
+
+function showNoPatrol(){
+ lastPatrolInfo.innerHTML = `
+  <div>
+   <b>📍 ${projectTitle.innerText}</b><br>
+   🚫 Henüz denetlenmedi
+  </div>
+ `;
+}
+
+
+function selectProject(){
+
+ if(!projectSelect.value){
+  alert("Lütfen proje seç");
+  return;
+ }
+
+ proje = projectSelect.value;
+
+db.ref(`projects/${proje}/personnel`).once("value", snap => {
+
+  const map = {};
+
+  const promises = [];
+
+  snap.forEach(tcSnap => {
+    const tc = tcSnap.key;
+
+    promises.push(
+      db.ref(`personnel/${tc}`).once("value").then(perSnap => {
+        if(perSnap.exists()){
+          map[tc] = true;              // 👈 sadece varlık bilgisi
+          cachePersonnel(tc, perSnap.val());
+        }
+      })
+    );
+  });
+
+Promise.all(promises).then(()=>{
+  localStorage.setItem(
+    "projectPersonnel_" + proje,
+    JSON.stringify(map)
+  );
+
+  // 🔥 ARTIK CACHE DOLU
+  loadList();
+});
+
+
+});
+
+
+ projectPage.classList.add("hidden");
+ listPage.classList.remove("hidden");
+
+ db.ref(`projects/${proje}`).once("value",s=>{
+  projectTitle.innerText = s.val().projectName;
+ });
+
+ loadLastPatrolInfo();
+}
+
+
+
+ 
+
+function loadList() {
+  guardList.innerHTML = ""; // Listeyi temizle
+  const rendered = new Set();
+  const offline = !navigator.onLine;
+  const map = JSON.parse(localStorage.getItem("projectPersonnel_" + proje) || "{}");
+
+  // Offline mod
+// Offline mod
+if (offline) {
+  if (Object.keys(map).length === 0) {
+    guardList.innerHTML = "<p>Offline modda personel bulunamadı</p>";
+    return;
+  }
+
+  const offlineInspections = JSON.parse(localStorage.getItem("offlineInspections") || "[]");
+
+  Object.keys(map).forEach(tc => {
+    if (rendered.has(tc)) return;
+    rendered.add(tc);
+
+    const cached = getCachedPersonnel(tc);
+    const adSoyad = cached && cached.adSoyad ? cached.adSoyad : "Yükleniyor...";
+    const denetlendi = offlineInspections.some(i => i.proje === proje && i.tcNo === tc);
+
+    // 🔴 Kartın kırmızı çerçeve alması için offline-card sınıfını ekliyoruz
+    guardList.innerHTML += `
+      <div class="list-item offline-card" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0;">
+        <span class="guard-name">👮 ${adSoyad}</span>
+        <div class="right-actions" style="display: flex; align-items: center; gap: 8px;">
+          ${denetlendi ? `<span class="badge">DENETLENDİ</span>` : ""}
+          <button class="call-btn" onclick="callGuard('${tc}')">📞 Ara</button>
+        </div>
+      </div>
+    `;
+  });
+
+  return;
+}
+
+
+  // Online mod
+  db.ref(`projects/${proje}/personnel`).once("value", snap => {
+    if (!snap.exists()) {
+      guardList.innerHTML = "<p>Bu projede personel yok</p>";
+      return;
+    }
+
+    snap.forEach(tcSnap => {
+      const tc = tcSnap.key;
+      if (rendered.has(tc)) return;
+      rendered.add(tc);
+
+      const cached = getCachedPersonnel(tc);
+      const adSoyad = cached && cached.adSoyad ? cached.adSoyad : "Yükleniyor...";
+
+      db.ref(`denetimler/${proje}/${tc}`)
+        .orderByChild("devriyeId")
+        .equalTo(aktifDevriyeId)
+        .limitToLast(1)
+        .once("value")
+        .then(dSnap => {
+          const denetlendi = dSnap.exists();
+
+          guardList.innerHTML += `
+            <div class="list-item" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0;">
+              <span class="guard-name">👮 ${adSoyad}</span>
+              <div class="right-actions" style="display: flex; align-items: center; gap: 8px;">
+                ${denetlendi ? `<span class="badge">DENETLENDİ</span>` : ""}
+                <button class="call-btn" onclick="callGuard('${tc}')">📞 Ara</button>
+              </div>
+            </div>
+          `;
+        });
+    });
+  });
+}
+
+
+function timeAgo(ms){
+ const diff = Date.now() - ms;
+ const dk = Math.floor(diff / 60000);
+ const saat = Math.floor(dk / 60);
+ const gun = Math.floor(saat / 24);
+
+ if(gun > 0) return `${gun} gün ${saat % 24} saat ${dk % 60} dakika`;
+ if(saat > 0) return `${saat} saat ${dk % 60} dakika`;
+ return `${dk} dakika`;
+}
+
+
+
+/* DEVRIYE */
+function startPatrol(){
+ // QR nesnesi burada oluşturulmalı
+qrInstance = new Html5Qrcode("qr-reader");
+
+ if(!aktifDevriyeId){
+  aktifDevriyeId=db.ref(`devriyeler/${proje}`).push({
+   baslangic:Date.now(),durum:"aktif"
+  }).key;
+  localStorage.setItem("proje",proje);
+  localStorage.setItem("devriye",aktifDevriyeId);
+ }
+ listPage.classList.add("hidden");
+ qrPage.classList.remove("hidden");
+
+qrInstance.start({facingMode:"environment"},{fps:10,qrbox:250},t=>{
+tcNo=t;
+qrInstance.stop();
+checkGuard();
+ });
+}
+
+function checkGuard(){
+
+ // 🔌 OFFLINE MODE → HİÇ FIREBASE’E GİTME
+ if(!navigator.onLine){
+
+  if(tcNo.length !== 11){
+    showAlert({
+      title:"Geçersiz TC",
+      message:"TC hatalı",
+      buttons:[{text:"Tamam"}]
+    });
+    return;
+  }
+
+if(!isPersonnelInThisProject(tcNo)){
+  showAlert({
+    title:"Offline Uyarı",
+    message:"Bu personel bu projeye ait değil (offline)",
+    buttons:[
+      {
+        text:"Tamam",
+        onClick: () => {
+          // QR sayfasını kapat
+          qrPage.classList.add("hidden");
+
+          // Manuel TC sayfasını aç
+          manualPage.classList.remove("hidden");
+
+          // Input'u temizle + focus
+          manualTc.value = "";
+          manualTc.focus();
+        }
+      }
+    ]
+  });
+  return;
+}
+
+
+  loadGuardFromPersonnel();
+  return;
+ }
+
+
+ if(tcNo.length !== 11){
+  showAlert({
+   title:"Geçersiz QR",
+   message:"TC hatalı",
+   buttons:[{text:"Tamam"}]
+  });
+  return;
+ }
+
+
+ // 1️⃣ BU PROJEDE VAR MI?
+ db.ref(`projects/${proje}/personnel/${tcNo}`).once("value", pSnap => {
+
+  // ❌ BU PROJEDE YOKSA
+  if(!pSnap.exists()){
+
+    findPersonnelProject(tcNo).then(found => {
+
+      // ❌ HİÇBİR PROJEDE YOK
+  // ❌ HİÇBİR PROJEDE YOK
+if(!found){
+  showAlert({
+    title:"Personel Bulunamadı",
+    message:"Bu TC hiçbir projede kayıtlı değil",
+    buttons:[{
+      text:"Tamam",
+      onClick: () => {
+        // Manuel TC girişine geri dön
+        manualPage.classList.remove("hidden");
+        qrPage.classList.add("hidden");
+        manualTc.value = "";
+        manualTc.focus();
+      }
+    }]
+  });
+  return;
+}
+
+
+      // ⚠️ BAŞKA PROJEDE VAR
+showAlert({
+  title:"Bu Güvenlik Bu Projeye Ait Değil",
+  message:`
+    ❌ Bu personel bu projeye ait değil<br><br>
+    ✔️ <b>Mevcut Projesi:</b> ${found.name}
+  `,
+  buttons:[
+    {
+      text:"🟢 Mesaiye Geldi",
+   onClick: () => continueAsGuestGuard(true)
+
+    },
+
+    {
+      text:"🔁 Artık Bu Projede Çalışacak",
+      onClick: () => confirmMoveGuard(found)
+    },
+
+    {
+      text:"İptal"
+    }
+  ]
+});
+
+
+    });
+
+    return;
+  }
+
+// 🔍 AYNI DEVRİYEDE DAHA ÖNCE DENETLENDİ Mİ?
+db.ref(`denetimler/${proje}/${tcNo}`)
+  .orderByChild("devriyeId")
+  .equalTo(aktifDevriyeId)
+  .limitToLast(1)
+  .once("value", snap => {
+
+    // ❗ DAHA ÖNCE DENETLENMİŞ → BİLGİ YÜKLEME
+    if(snap.exists()){
+      snap.forEach(s => {
+        mevcutDenetimId = s.key;
+        const d = s.val();
+        const tarih = new Date(d.tarih).toLocaleString("tr-TR");
+
+        oldInfo.innerHTML = `
+          🕒 <b>${tarih}</b><br>
+          Durum: <b>${d.durum}</b>
+        `;
+      });
+
+      qrPage.classList.add("hidden");
+      alreadyPage.classList.remove("hidden");
+      mode = "update";
+      return;
+    }
+
+    // ✅ İLK KEZ → PERSONEL BİLGİLERİNİ YÜKLE
+    mode = "new";
+    loadGuardFromPersonnel();
+  });
+
+
+ });
+}
+
+function editKimlik(){
+
+ // mevcut personel bilgilerini inputlara bas
+ telefon.value = guard.telefon || "";
+ kimlikTuru.value = guard.kimlikTuru || "";
+ kimlikGecerlilik.value = guard.kimlikGecerlilik || "";
+
+ // kartı kapat, zorunlu bilgi sayfasını aç
+ cardPage.classList.add("hidden");
+ requiredPage.classList.remove("hidden");
+}
+	
+/* ZORUNLU */
+function saveRequired(){
+  if(!telefon.value || !kimlikTuru.value || !kimlikGecerlilik.value){
+    showAlert({
+      title: "Eksik Bilgi",
+      message: "Lütfen tüm alanları doldur",
+      buttons: [{ text: "Tamam" }]
+    });
+    return;
+  }
+
+  const yeniTelefon = telefon.value;
+  const yeniKimlikTuru = kimlikTuru.value;
+  const yeniGecerlilik = kimlikGecerlilik.value;
+
+  /* 🔥 OFFLINE-FIRST: STATE'I HEMEN GÜNCELLE */
+  guard.telefon = yeniTelefon;
+  guard.kimlikTuru = yeniKimlikTuru;
+  guard.kimlikGecerlilik = yeniGecerlilik;
+
+  /* 💾 LOCAL CACHE */
+  cachePersonnel(tcNo, { ...guard });
+
+  /* 📦 OFFLINE İSE → KUYRUKLA (TEKİL TC) */
+  if(!navigator.onLine){
+    const key = "offlinePersonnelUpdates";
+    let list = JSON.parse(localStorage.getItem(key) || "[]");
+
+    // aynı TC varsa üstüne yaz
+    list = list.filter(p => p.tc !== tcNo);
+
+    list.push({
+      tc: tcNo,
+      adSoyad: guard.adSoyad,
+      data: {
+        telefon: yeniTelefon,
+        kimlikTuru: yeniKimlikTuru,
+        kimlikGecerlilik: yeniGecerlilik
+      }
+    });
+
+    localStorage.setItem(key, JSON.stringify(list));
+  }
+
+  /* 🧹 ZORUNLU EKRANI KAPAT */
+  requiredPage.classList.add("hidden");
+
+  /* ▶️ DENETLEME AKIŞINA DEVAM */
+  loadGuardFromPersonnel();
+
+  /* 🌐 ONLINE İSE → FIREBASE'E GÖNDER */
+  if(navigator.onLine){
+    syncPersonnel({
+      tc: tcNo,
+      adSoyad: guard.adSoyad,
+      data: {
+        telefon: yeniTelefon,
+        kimlikTuru: yeniKimlikTuru,
+        kimlikGecerlilik: yeniGecerlilik
+      }
+    }).catch(err => {
+      console.warn("⚠️ Online sync başarısız, offline kuyruğa kalır", err);
+    });
+  }
+}
+
+
+function showCard(){
+ alreadyPage.classList.add("hidden");
+ cardPage.classList.remove("hidden");
+
+ ad.innerText = guard.adSoyad;
+ tc.innerText = guard.tc;
+ kimlik.innerText = guard.kimlikTuru;
+ gecerlilik.innerText = guard.kimlikGecerlilik;
+
+const expiry = checkKimlikExpiry(guard.kimlikGecerlilik);
+
+// ⛔ önce temizle
+expiryInfo.innerHTML = "";
+
+// 🚨 UYARI VARSA
+if(expiry.danger){
+
+ expiryInfo.innerHTML = `
+  <div class="expiry-warning">
+   🚨 ${expiry.text}
+  </div>
+
+  <button
+   onclick="editKimlik()"
+   style="
+    margin-top:10px;
+    background:linear-gradient(135deg,#ffb347,#ffcc33);
+    color:#000;
+    font-weight:800;
+   ">
+   🪪 Kimlik Bilgilerini Güncelle
+  </button>
+ `;
+}
+// ✅ UYARI YOKSA
+else{
+ expiryInfo.innerHTML = `
+  <div style="
+   margin-top:12px;
+   padding:10px;
+   border-radius:12px;
+   background:linear-gradient(135deg,#1e2a55,#25346b);
+   box-shadow:0 0 12px rgba(0,229,255,.4);
+   font-size:13px;
+  ">
+   ${expiry.text}
+  </div>
+ `;
+}
+
+
+
+
+ if(guard.photoBase64){
+  guardPhoto.src = guard.photoBase64;
+  guardPhoto.style.display = "block";
+  photoPlus.style.display = "none";
+ }else{
+  guardPhoto.style.display = "none";
+  photoPlus.style.display = "block";
+ }
+}
+
+
+
+function saveInspection(durum, detay=null){
+
+ if(!currentUser || !currentUser.uid){
+  alert("Oturum hazır değil, 1 saniye bekle");
+  return;
+ }
+
+ if(!currentProfileName){
+  alert("Profil yüklenmedi, lütfen bekle");
+  return;
+ }
+
+ let ref;
+
+ if(mode === "update" && mevcutDenetimId){
+  ref = db.ref(`denetimler/${proje}/${tcNo}/${mevcutDenetimId}`);
+ }else{
+  ref = db.ref(`denetimler/${proje}/${tcNo}`).push();
+ }
+
+const data = {
+  durum: durum,
+  tarih: Date.now(),
+  devriyeId: aktifDevriyeId,
+
+  denetleyenUid: String(currentUser.uid),
+  denetleyenEmail: currentUser.email ? String(currentUser.email) : "email_yok",
+  denetleyenAd: currentProfileName && currentProfileName.trim()
+    ? currentProfileName
+    : "İsimsiz Kullanıcı"
+ };
+ // 🔥 SADECE MESAI BUTONUYLA GELEN DENETİM
+if(window.__mesaideFlag === true){
+  data.mesaide = true;
+  window.__mesaideFlag = false; // ⚠️ bayrağı kapat
+}
+
+
+ if(detay){
+  data.detay = detay;
+ }
+
+if(durum === "gorevi_basinda"){
+  data.detay = null;
+}
+
+
+if(navigator.onLine){
+ ref.set(data);
+}else{
+ const key = "offlineInspections";
+ const list = JSON.parse(localStorage.getItem(key) || "[]");
+ list.push({ proje, tcNo, data });
+ localStorage.setItem(key, JSON.stringify(list));
+}
+
+
+ cardPage.classList.add("hidden");
+ listPage.classList.remove("hidden");
+ loadList();
+
+ mode="new";
+ mevcutDenetimId=null;
+ tcNo="";
+ uygunsuzPanel.classList.add("hidden");
+ uygunsuzSebep.value="";
+ uygunsuzDiger.value="";
+ uygunsuzDiger.classList.add("hidden");
+}
+
+
+
+
+
+/* BITIR */
+function finishPatrol(){
+
+
+
+
+ // ❗ DEVRIYE BAŞLAMADIYSA
+ if(!aktifDevriyeId){
+  showAlert({
+   title:"Denetleme Yok",
+   message:"Denetleme başlamadan denetleme bitirilemez",
+   buttons:[{text:"Tamam"}]
+  });
+  return;
+ }
+
+ showAlert({
+  title: "Denetleme Bitirilsin mi?",
+  message: `
+   Devam edersen 
+   <span class="danger-text">${projectTitle.innerText}</span> 
+   için yapılan denetleme <b>kapatılacak</b>,<br><br>
+   Tüm işlemler tamamlanacak ve 
+   <b>giriş ekranına yönlendirileceksin</b>.
+  `,
+  buttons:[
+   { text:"İptal" },
+   { 
+    text:"Evet, Denetlemeyi Bitir",
+    danger:true,
+    onClick: finishPatrolConfirmed
+   }
+  ]
+ });
+}
+function finishPatrolConfirmed(){
+
+ const uid = currentUser.uid;
+ const name = currentProfileName || "İsimsiz Kullanıcı";
+ const email = currentUser.email || "email_yok";
+
+ const now = Date.now();
+
+ // Şu anki tarihi okunabilir formata çevir
+ const formattedDate = new Date(now)
+   .toLocaleString("tr-TR", {
+     year: "numeric",
+     month: "2-digit",
+     day: "2-digit",
+     hour: "2-digit",
+     minute: "2-digit",
+     hour12: false
+   }).replace(",", ""); // 2026-02-05 18:22
+
+ db.ref(`projects/${proje}`).update({
+  lastPatrolEnd: now,           // eski sayı kalsın
+  lastPatrolEndText: formattedDate, // yeni okunabilir tarih
+  lastPatrolBy: {
+   uid,
+   name,
+   email
+  }
+ }).then(()=>{
+  localStorage.clear();
+  window.location.href = "menü.html";
+ }).catch(()=>{
+  showAlert({
+   title:"Hata",
+   message:"Denetleme kapatılırken hata oluştu",
+   buttons:[{text:"Tamam"}]
+  });
+ });
+}
+
+function showAlert({title="Uyarı", message="", buttons=[]}){
+ alertTitle.innerText = title;
+alertMessage.innerHTML = message;
+ alertActions.innerHTML = "";
+
+ buttons.forEach(b=>{
+  const btn=document.createElement("button");
+  btn.innerText=b.text;
+  btn.onclick=()=>{
+   closeAlert();
+   if(b.onClick) b.onClick();
+  };
+  alertActions.appendChild(btn);
+ });
+
+ appAlert.classList.remove("hidden");
+}
+
+function closeAlert(){
+ appAlert.classList.add("hidden");
+}
+function checkKimlikExpiry(tarihStr){
+
+ if(!tarihStr){
+  return { danger:true, text:"❌ Kimlik bilgisi yok" };
+ }
+
+
+ const today = new Date();
+ const expiry = new Date(tarihStr);
+
+ const diffMs = expiry - today;
+ const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+ const diffMonths = Math.floor(diffDays / 30);
+
+ if(diffDays <= 0){
+  return {
+   danger:true,
+   text:"❌ Kimlik süresi DOLMUŞ"
+  };
+ }
+
+ if(diffMonths < 6){
+  return {
+   danger:true,
+   text:`⚠️ Kimlik süresinin bitmesine ${diffMonths} ay ${diffDays % 30} gün kaldı`
+  };
+ }
+
+ return {
+  danger:false,
+  text:`✅ Kimlik geçerli (${diffMonths} ay ${diffDays % 30} gün kaldı)`
+ };
+}
+function openUygunsuz(){
+ uygunsuzPanel.classList.remove("hidden");
+ uygunsuzSebep.focus();
+}
+
+
+uygunsuzSebep.onchange = ()=>{
+ if(uygunsuzSebep.value === "diger"){
+  uygunsuzDiger.classList.remove("hidden");
+ }else{
+  uygunsuzDiger.classList.add("hidden");
+  uygunsuzDiger.value = "";
+ }
+};
+
+function saveUygunsuz(){
+ if(!uygunsuzSebep.value){
+  showAlert({
+   title:"Eksik Seçim",
+   message:"Uygunsuzluk sebebi seç",
+   buttons:[{text:"Tamam"}]
+  });
+  return;
+ }
+
+ let detay = uygunsuzSebep.value;
+
+ if(detay === "diger"){
+  if(!uygunsuzDiger.value){
+   showAlert({
+    title:"Eksik Bilgi",
+    message:"Diğer sebebi yaz",
+    buttons:[{text:"Tamam"}]
+   });
+   return;
+  }
+  detay = uygunsuzDiger.value;
+ }
+
+ saveInspection("uygunsuz", detay);
+}
+function callGuard(tc){
+ db.ref(`personnel/${tc}/telefon`).once("value", snap => {
+
+  if(!snap.exists() || !snap.val()){
+   showAlert({
+    title:"Telefon Yok",
+    message:"Bu personelin kayıtlı telefonu yok",
+    buttons:[{text:"Tamam"}]
+   });
+   return;
+  }
+
+  const tel = snap.val();
+
+  showAlert({
+   title:"Personel Aransın mı?",
+   message:`📞 ${tel}`,
+   buttons:[
+    { text:"İptal" },
+    { text:"Ara", onClick:()=>{ window.location.href=`tel:${tel}` } }
+   ]
+  });
+ });
+}
+
+function toggleFlash(){
+ if(!qrInstance) return;
+
+ flashOn = !flashOn;
+
+ qrInstance.applyVideoConstraints({
+  advanced:[{ torch: flashOn }]
+ }).catch(err=>{
+  showAlert({
+   title:"Flash Desteklenmiyor",
+   message:"Bu cihaz flash kontrolünü desteklemiyor",
+   buttons:[{text:"Tamam"}]
+  });
+ });
+}
+function refocusCamera(){
+ if(!qrInstance) return;
+
+ qrInstance.stop().then(()=>{
+  qrInstance.start(
+   { facingMode:"environment" },
+   { fps:10, qrbox:250 },
+   t=>{
+    tcNo=t;
+    qrInstance.stop();
+    checkGuard();
+   }
+  );
+ });
+}
+function openManual(){
+ qrPage.classList.add("hidden");
+ manualPage.classList.remove("hidden");
+ manualTc.value = "";
+ manualTc.focus();
+}
+
+function backToQr(){
+  manualPage.classList.add("hidden");
+  qrPage.classList.remove("hidden");
+
+  // QR okuyucuyu başlat
+  if(!qrInstance){
+    qrInstance = new Html5Qrcode("qr-reader");
+  }
+
+  qrInstance.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: 250 },
+    t => {
+      tcNo = t;
+      qrInstance.stop();
+      checkGuard();
+    }
+  ).catch(err => {
+    console.error("QR başlatılamadı:", err);
+  });
+}
+
+
+function manualSearch(){
+ const tc = manualTc.value.trim();
+
+ if(tc.length !== 11){
+  showAlert({
+   title:"Geçersiz TC",
+   message:"11 haneli TC gir",
+   buttons:[{text:"Tamam"}]
+  });
+  return;
+ }
+
+ tcNo = tc;
+ manualPage.classList.add("hidden");
+ checkGuard(); // QR okutmuş gibi devam eder
+}
+function backToProject(){
+
+ // Devriye başlamışsa GERİ DÖNME
+ if(aktifDevriyeId){
+  showAlert({
+   title:"Denetleme Devam Ediyor",
+   message:`📍 ${projectTitle.innerText} projesi için denetleme başlatıldı.\n\nDenetlemeyi bitirmeden proje seçimine dönemezsiniz.`,
+   buttons:[{text:"Tamam"}]
+  });
+  return;
+ }
+
+ // Devriye yoksa NORMAL GERİ DÖN
+ listPage.classList.add("hidden");
+ projectPage.classList.remove("hidden");
+}
+
+let cameraStream = null;
+let cameraAllowed = false;
+
+
+/* FOTO SEÇENEKLERİ */
+function openPhotoOptions(){
+
+ const hasPhoto = !!guard.photoBase64;
+
+ showAlert({
+  title:"Profil Fotoğrafı",
+  message: hasPhoto
+   ? "Yeni profil fotoğrafı koymak ister misin?"
+   : "Profil fotoğrafı eklemek ister misin?",
+  buttons:[
+   { text:"İptal" },
+   {
+    text: hasPhoto ? "Yeni Profil Fotoğrafı Koy" : "Ekle",
+    onClick: () => {
+ cameraAllowed = true;
+ openCameraForProfile();
+}
+
+   }
+  ]
+ });
+}
+
+
+function saveProfilePhoto(canvas, quality){
+
+ const base64 = canvas.toDataURL("image/jpeg", quality);
+ const sizeKB = Math.round((base64.length * 3) / 4 / 1024);
+
+ if(sizeKB > 300 && quality > 0.2){
+  return saveProfilePhoto(canvas, quality - 0.1);
+ }
+
+ return syncPersonnel({
+  tc: tcNo,
+  adSoyad: guard.adSoyad,
+  data: {
+    photoBase64: base64
+  }
+ }).then(()=>{
+  guard.photoBase64 = base64;
+  guardPhoto.src = base64;
+  guardPhoto.style.display = "block";
+  photoPlus.style.display = "none";
+ });
+}
+
+
+function openCameraForProfile(){
+ if(!cameraAllowed) return;
+ cameraAllowed = false;
+
+ // varsa önce eski kamerayı kapat
+ if(cameraStream){
+  cameraStream.getTracks().forEach(t=>t.stop());
+  cameraStream = null;
+ }
+
+ navigator.mediaDevices.getUserMedia({
+  video:{
+   facingMode:{ ideal:"environment" } // ✅ ANDROID + IOS
+  },
+  audio:false
+ }).then(stream=>{
+  cameraStream = stream;
+  camera.srcObject = stream;
+
+  camera.onloadedmetadata = () => {
+   camera.play();
+  };
+
+  cameraModal.classList.remove("hidden");
+  cameraModal.style.display = "flex";
+ }).catch(err=>{
+  alert("Arka kamera açılamadı");
+  console.error(err);
+ });
+}
+
+
+function captureProfilePhoto(){
+
+ const vw = camera.videoWidth;
+ const vh = camera.videoHeight;
+ if(!vw || !vh) return Promise.reject();
+
+ const rect = camera.getBoundingClientRect();
+ const guideSize = 220;
+
+ const guideCenterX = rect.width / 2;
+ const guideCenterY = rect.height / 2;
+
+ const videoRatio = vw / vh;
+ const viewRatio  = rect.width / rect.height;
+
+ let renderedW, renderedH, offsetX = 0, offsetY = 0;
+
+ if(videoRatio > viewRatio){
+  renderedH = rect.height;
+  renderedW = renderedH * videoRatio;
+  offsetX = (renderedW - rect.width) / 2;
+ }else{
+  renderedW = rect.width;
+  renderedH = renderedW / videoRatio;
+  offsetY = (renderedH - rect.height) / 2;
+ }
+
+ const scaleX = vw / renderedW;
+ const scaleY = vh / renderedH;
+
+ const sx = Math.round((guideCenterX - guideSize/2 + offsetX) * scaleX);
+ const sy = Math.round((guideCenterY - guideSize/2 + offsetY) * scaleY);
+ const sSize = Math.round(guideSize * scaleX);
+
+ const canvas = document.createElement("canvas");
+ canvas.width = sSize;
+ canvas.height = sSize;
+
+ const ctx = canvas.getContext("2d");
+ ctx.drawImage(camera, sx, sy, sSize, sSize, 0, 0, sSize, sSize);
+
+ // 🔥 PROMISE DÖNDÜR
+ return saveProfilePhoto(canvas, 0.85);
+}
+
+
+function captureAndClose(){
+ captureProfilePhoto()
+  .then(()=>{
+   closeCameraModal();
+   showAlert({
+    title:"Başarılı",
+    message:"Profil fotoğrafı kaydedildi",
+    buttons:[{text:"Tamam"}]
+   });
+  })
+  .catch(()=>{
+   showAlert({
+    title:"Hata",
+    message:"Fotoğraf alınamadı",
+    buttons:[{text:"Tamam"}]
+   });
+  });
+}
+
+
+function closeCameraModal(){
+
+ const modal = document.getElementById("cameraModal");
+ const video = document.getElementById("camera");
+
+ // modalı kapat
+ modal.classList.add("hidden");
+ modal.style.display = "none";
+
+ // kamerayı durdur
+ if(cameraStream){
+  cameraStream.getTracks().forEach(t => t.stop());
+  cameraStream = null;
+ }
+
+ // video bağlantısını kes
+ if(video){
+  video.pause();
+  video.srcObject = null;
+ }
+}
+
+function logout(){
+
+ // 1️⃣ Manuel personel sayfasındaysa → QR'a dön
+ if(!manualPage.classList.contains("hidden")){
+  manualPage.classList.add("hidden");
+  qrPage.classList.remove("hidden");
+  return;
+ }
+
+ // 2️⃣ QR sayfasındaysa → listeye dön
+ if(!qrPage.classList.contains("hidden")){
+  qrPage.classList.add("hidden");
+  listPage.classList.remove("hidden");
+  return;
+ }
+
+ // 3️⃣ Kart / already / required sayfalarındaysa → listeye dön
+ if(
+  !cardPage.classList.contains("hidden") ||
+  !alreadyPage.classList.contains("hidden") ||
+  !requiredPage.classList.contains("hidden")
+ ){
+  cardPage.classList.add("hidden");
+  alreadyPage.classList.add("hidden");
+  requiredPage.classList.add("hidden");
+  listPage.classList.remove("hidden");
+  return;
+ }
+
+ // 4️⃣ Liste sayfasındaysa
+ if(!listPage.classList.contains("hidden")){
+
+  // Devriye başladıysa çıkış YOK
+  if(aktifDevriyeId){
+   showAlert({
+    title:"Denetleme Devam Ediyor",
+    message:"Denetlemeyi bitirmeden çıkamazsın",
+    buttons:[{text:"Tamam"}]
+   });
+   return;
+  }
+
+  // Devriye yoksa → proje seçimine dön
+  listPage.classList.add("hidden");
+  projectPage.classList.remove("hidden");
+  return;
+ }
+
+ // 5️⃣ Proje seçimindeyse → login'e dön
+ window.location.href = "menü.html";
+}
+
+function findPersonnelProject(tc){
+  return db.ref("projects").once("value").then(snap => {
+
+    let found = null;
+
+    snap.forEach(p => {
+      if(p.child("personnel").child(tc).exists()){
+        found = {
+          id: p.key,
+          name: p.val().projectName
+        };
+      }
+    });
+
+    return found;
+  });
+}
+function continueAsGuestGuard(isMesaide = false){
+
+  db.ref(`personnel/${tcNo}`).once("value", snap => {
+
+    if(!snap.exists()){
+      return;
+    }
+
+    guard = snap.val();
+
+    qrPage.classList.add("hidden");
+    showCard();
+
+    // 🔴 SADECE "Mesaiye Geldi" BUTONUNDAN GELDİYSE
+    if(isMesaide === true){
+      window.__mesaideFlag = true;
+    }
+
+  }); // ← once kapanışı
+}     // ← fonksiyon kapanışı
+
+
+function loadGuardFromPersonnel(){
+
+  // 🔥 ÖNCE CACHE’TEN OKU
+  const cached = getCachedPersonnel(tcNo);
+
+  if(!cached){
+    showAlert({
+      title:"Offline Veri Yok",
+      message:"Bu personel offline verilerde bulunamadı",
+      buttons:[{text:"Tamam"}]
+    });
+    return;
+  }
+
+  guard = {
+    tc: tcNo,
+    ...cached
+  };
+
+  // zorunlu alan kontrolü
+  if(!guard.telefon || !guard.kimlikTuru || !guard.kimlikGecerlilik){
+    qrPage.classList.add("hidden");
+    requiredPage.classList.remove("hidden");
+    return;
+  }
+
+  qrPage.classList.add("hidden");
+  showCard();
+}
+
+function moveGuardToThisProject(oldProjectId){
+
+  const updates = {};
+
+  // ❌ eski projeden çıkar
+  updates[`projects/${oldProjectId}/personnel/${tcNo}`] = null;
+
+  // ✅ yeni projeye ekle
+  updates[`projects/${proje}/personnel/${tcNo}`] = true;
+
+  // 🔁 personel ana kaydında proje bilgisini güncelle
+  updates[`personnel/${tcNo}/project`] = proje;
+
+  firebase.database().ref().update(updates)
+    .then(() => {
+// 🔥 CACHE’E EKSİK VERİ YAZMA → FIREBASE’TEN TEKRAR OKU
+db.ref(`personnel/${tcNo}`).once("value", snap => {
+  if(snap.exists()){
+    cachePersonnel(tcNo, snap.val());
+
+    // liste açıksa anında yenile
+    if(listPage && !listPage.classList.contains("hidden")){
+      guardList.innerHTML = "";
+      setTimeout(loadList, 50);
+    }
+  }
+});
+
+// 🔁 LİSTEYİ YENİDEN ÇİZDİR (İSİM ANINDA GELİR)
+if(listPage && !listPage.classList.contains("hidden")){
+  guardList.innerHTML = "";
+  setTimeout(loadList, 100);
+}
+
+
+// 🔥 BU PROJENİN PERSONEL LİSTESİNE EKLE (OFFLINE + UI İÇİN)
+const key = "projectPersonnel_" + proje;
+const map = JSON.parse(localStorage.getItem(key) || "{}");
+map[tcNo] = true;
+localStorage.setItem(key, JSON.stringify(map));
+
+
+      showAlert({
+        title:"Başarılı",
+        message:"Personel artık bu projede çalışıyor",
+        buttons:[
+          {
+            text:"Devam",
+            onClick: () => {
+              continueAsGuestGuard(); 
+              // 👆 aynı akış ama artık PROJEYE AİT
+            }
+          }
+        ]
+      });
+
+    })
+    .catch(() => {
+      showAlert({
+        title:"Hata",
+        message:"Personel taşınırken hata oluştu",
+        buttons:[{ text:"Tamam" }]
+      });
+    });
+}
+function confirmMoveGuard(found){
+
+  const deneticiAdi = currentProfileName?.trim() || "Denetici";
+  const eskiProje   = found.name || "mevcut proje";
+  const yeniProje   = projectTitle.innerText || "seçilen proje";
+
+  showAlert({
+    title:"Personel Taşıma Onayı",
+    message:`
+      <b>Sayın Denetici:</b> ${deneticiAdi}<br><br>
+
+      <span class="danger-text">${eskiProje}</span>
+      <span style="opacity:.7"> projesinde kayıtlı olan personelin</span><br>
+
+      <span style="font-size:18px;opacity:.5">↓</span><br>
+
+      <span style="color:#4dffb5;font-weight:800">${yeniProje}</span>
+      <span style="opacity:.7"> projesine</span><br><br>
+
+      <b>kalıcı olarak aktarılması</b> işlemini onaylıyor musunuz?
+    `,
+    buttons:[
+      { text:"❌ Vazgeç" },
+      {
+        text:"✅ Evet, Taşı",
+        danger:true,
+        onClick: () => moveGuardToThisProject(found.id)
+      }
+    ]
+  });
+}
+
+window.addEventListener("online", async ()=>{
+
+  const key = "offlineInspections";
+  const list = JSON.parse(localStorage.getItem(key) || "[]");
+  if(!list.length) return;
+
+  try{
+    for(const x of list){
+      await db.ref(`denetimler/${x.proje}/${x.tcNo}`).push(x.data);
+    }
+
+    localStorage.removeItem(key);
+
+    // 🔥 ÇÖZÜM BURASI
+    if(listPage && !listPage.classList.contains("hidden")){
+      guardList.innerHTML = "";   // NET SIFIRLAMA
+      setTimeout(loadList, 300);  // Firebase yazımı bitsin
+    }
+
+    showAlert({
+      title:"Senkron Tamam",
+      message:"Offline denetimler sisteme yüklendi",
+      buttons:[{text:"Tamam"}]
+    });
+
+  }catch(e){
+    showAlert({
+      title:"Senkron Hatası",
+      message:"Bazı offline veriler yüklenemedi",
+      buttons:[{text:"Tamam"}]
+    });
+  }
+});
+
+
+function cachePersonnel(tc, data){
+ const all = JSON.parse(localStorage.getItem("personnelCache") || "{}");
+ all[tc] = data;
+ localStorage.setItem("personnelCache", JSON.stringify(all));
+}
+
+function getCachedPersonnel(tc){
+ const all = JSON.parse(localStorage.getItem("personnelCache") || "{}");
+ return all[tc] || null;
+}
+function continueNewInspection(){
+  mode = "new";
+  alreadyPage.classList.add("hidden");
+  loadGuardFromPersonnel(); // 🔥 guard DOLAR
+}
+
+function continueUpdateInspection(){
+  mode = "update";
+  alreadyPage.classList.add("hidden");
+  loadGuardFromPersonnel(); // 🔥 guard DOLAR
+}
+// OFFLINE STATUSU HEMEN GÖSTER / GİZLE
+function checkOfflineStatus() {
+  if (!navigator.onLine) {
+    offlineStatus.style.display = "block"; // internet yok → göster
+  } else {
+    offlineStatus.style.display = "none";  // internet var → gizle
+  }
+}
+
+// Sayfa yüklendiğinde anında çalıştır
+checkOfflineStatus();
+
+// Online / offline değişimlerini dinle
+window.addEventListener("online", checkOfflineStatus);
+window.addEventListener("offline", checkOfflineStatus);
+
+</script>
+<div id="appAlert" class="hidden">
+  <div class="alert-box">
+    <h3 id="alertTitle"></h3>
+    <p id="alertMessage"></p>
+    <div id="alertActions"></div>
+  </div>
+</div>
+<!-- 📸 PROFİL FOTO KAMERA MODALI -->
+<div id="cameraModal" class="hidden"
+ style="
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.85);
+  align-items:center;
+  justify-content:center;
+  z-index:9999;
+ ">
+
+ <div style="position:relative;width:90%;max-width:360px;">
+
+<video id="camera" autoplay playsinline
+ style="width:100%;border-radius:16px;object-fit:cover">
+</video>
+
+
+
+
+
+  <!-- 🔲 KARE REHBER -->
+  <div style="
+   position:absolute;
+   top:50%;
+   left:50%;
+   width:220px;
+   height:220px;
+   transform:translate(-50%,-50%);
+   border:3px solid #00e5ff;
+   border-radius:14px;
+   box-shadow:0 0 0 2000px rgba(0,0,0,.55);
+   pointer-events:none;
+  "></div>
+
+ <button onclick="captureAndClose()" style="margin-top:14px;width:100%">
+ 📸 Profil Fotoğrafı Oluştur
+</button>
+
+
+  <button onclick="closeCameraModal()"
+   style="margin-top:8px;width:100%;background:#ff4d4d;color:#fff">
+   ❌ İptal
+  </button>
+
+ </div>
+</div>
+<div id="profileModal" class="hidden"
+ style="
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.7);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:9999
+ ">
+
+ <div class="card" style="width:90%;max-width:360px">
+
+  <h3>👤 Profil</h3>
+
+  <input id="profileEmailInput" disabled>
+  <input id="newPassword" type="password" placeholder="Yeni Şifre">
+
+  <button onclick="updatePassword()">🔐 Şifreyi Güncelle</button>
+  <button onclick="closeProfile()" style="background:#ff4d4d;color:#fff">
+   ❌ Kapat
+  </button>
+
+ </div>
+</div>
+<script>
+/* 📡 OFFLINE / ONLINE DURUM TAKİBİ (ÜST BAR + MODE + SYNC) */
+async function updateOfflineStatus(){
+  const el = document.getElementById("offlineStatus");
+
+  if(navigator.onLine){
+
+    // 🔓 OFFLINE MODU KAPAT
+    disableOfflineMode();
+
+    // 📡 ÜST BAR GİZLE
+    if(el) el.style.display = "none";
+
+    // 🔄 OFFLINE'DA GİRİLEN PERSONEL BİLGİLERİNİ YÜKLE
+    await syncOfflinePersonnelUpdates();
+
+  }else{
+
+    // 🔒 OFFLINE MODU AÇ
+    enableOfflineMode();
+
+    // 📡 ÜST BAR GÖSTER
+    if(el) el.style.display = "block";
+  }
+}
+
+window.addEventListener("online", () => {
+  updateOfflineStatus();
+});
+
+window.addEventListener("offline", () => {
+  updateOfflineStatus();
+});
+
+// ilk açılışta durum kontrolü
+updateOfflineStatus();
+
+
+/* 🔄 OFFLINE PERSONEL BİLGİLERİNİ FIREBASE'E GÖNDER */
+async function syncOfflinePersonnelUpdates(){
+  const key = "offlinePersonnelUpdates";
+  const list = JSON.parse(localStorage.getItem(key) || "[]");
+  if(!list.length) return;
+
+  console.log("🔄 Offline personel bilgileri Firebase'e gönderiliyor", list);
+
+  let hasError = false;
+
+  for(const p of list){
+    try{
+      await syncPersonnel({
+        tc: p.tc,
+        adSoyad: p.adSoyad,
+        data: p.data
+      });
+    }catch(err){
+      console.error("❌ Personel sync hatası:", p.tc, err);
+      hasError = true;
+    }
+  }
+
+  // ❗ SADECE TÜMÜ BAŞARILIYSA TEMİZLE
+  if(!hasError){
+    localStorage.removeItem(key);
+    console.log("✅ Offline personel kuyruğu temizlendi");
+  }else{
+    console.warn("⚠️ Bazı personel kayıtları gönderilemedi, kuyruk korunuyor");
+  }
+}
+
+
+/* 🔒 MOBİLDE AŞAĞI ÇEK → YENİLE ENGEL */
+let startY = 0;
+
+window.addEventListener("touchstart", e => {
+  startY = e.touches[0].clientY;
+}, { passive: false });
+
+window.addEventListener("touchmove", e => {
+  const currentY = e.touches[0].clientY;
+  if (window.scrollY === 0 && currentY > startY) {
+    e.preventDefault();
+  }
+}, { passive: false });
+setInterval(() => {
+  if(navigator.onLine){
+    syncOfflinePersonnelUpdates();
+  }
+}, 5000);
+</script>
+
+</body>
+</html>  
+
+
+
+

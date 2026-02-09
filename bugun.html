@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Denetim Özeti</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box}
+body{
+  font-family:'Inter',sans-serif;
+  background:linear-gradient(180deg,#eef2f7,#f8fafc);
+  margin:0;
+  padding:16px;
+  color:#1f2937;
+}
+.header{margin-bottom:16px}
+.header h2{margin:0;font-size:22px;font-weight:700}
+.header .user{font-size:14px;color:#6b7280;margin-top:4px}
+.filters{display:flex;gap:8px;margin:16px 0}
+.filters button{
+  flex:1;padding:10px 0;border:none;border-radius:12px;
+  font-weight:600;background:#e5e7eb;color:#374151;cursor:pointer
+}
+.filters button.active{background:#2563eb;color:#fff}
+.stats{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:10px;margin-bottom:16px
+}
+.stat{
+  background:#fff;border-radius:16px;padding:14px;text-align:center;
+  box-shadow:0 6px 16px rgba(0,0,0,.06)
+}
+.stat span{font-size:13px;color:#6b7280}
+.stat h3{margin:6px 0 0;font-size:22px;font-weight:700}
+.list{display:flex;flex-direction:column;gap:12px}
+.item{
+  background:#fff;border-radius:16px;padding:14px;
+  box-shadow:0 8px 20px rgba(0,0,0,.06)
+}
+.item.bad{border-left:5px solid #ef4444}
+.item.good{border-left:5px solid #22c55e}
+.item-header{
+  display:flex;justify-content:space-between;align-items:center;gap:8px
+}
+.item-title{font-weight:600;font-size:16px}
+.item-time{font-size:13px;color:#6b7280}
+.item-stats{
+  margin-top:8px;
+  font-size:14px;
+
+  display:flex;
+  flex-wrap:nowrap;      /* ⛔ alt satıra düşmez */
+  align-items:center;
+  gap:14px;              /* aralık */
+  white-space:nowrap;    /* ⛔ kırılma yok */
+}
+
+.item-stats span{
+  font-weight:600;
+}
+
+.empty{
+  background:#fff;border-radius:16px;padding:20px;text-align:center;
+  color:#6b7280;box-shadow:0 6px 16px rgba(0,0,0,.05)
+}
+@media(min-width:768px){
+  body{max-width:900px;margin:auto}
+}
+.menu-exit-btn{
+ position:fixed;
+ top:14px;
+ right:14px;
+ z-index:9999;
+
+ width:auto;
+ padding:8px 12px;
+ border-radius:12px;
+ font-size:13px;
+ font-weight:700;
+
+ background:linear-gradient(135deg,#ff4d4d,#b30000);
+ color:#fff;
+ box-shadow:0 6px 18px rgba(255,0,0,.5);
+
+ border:none;
+ cursor:pointer;
+}
+
+.menu-exit-btn:active{
+ transform:scale(.95);
+}
+html, body {
+  overscroll-behavior-y: contain;
+  touch-action: pan-x pan-y;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <h2>📋 Denetim Özeti</h2>
+  <div class="user" id="userInfo">Yükleniyor...</div>
+</div>
+<button onclick="goMenu()" class="menu-exit-btn">
+ ⎋
+</button>
+
+<div class="filters">
+  <button class="active" onclick="setFilter('today',this)">Bugün</button>
+  <button onclick="setFilter('yesterday',this)">Dün</button>
+  <button onclick="setFilter('week',this)">Bu Hafta</button>
+</div>
+
+<div class="stats">
+  <div class="stat"><span>Denetlenen</span><h3 id="total">0</h3></div>
+  <div class="stat"><span>Görevi Başında</span><h3 id="ok">0</h3></div>
+  <div class="stat"><span>Uygunsuz</span><h3 id="bad">0</h3></div>
+</div>
+
+<div class="list" id="projectList"></div>
+
+<script>
+/* 🔐 MENÜ KONTROLÜ */
+
+const allowed = sessionStorage.getItem("menuAllowed");
+
+
+document.addEventListener("DOMContentLoaded", () => {
+  const allowed = sessionStorage.getItem("menuAllowed");
+  if (allowed !== "ok") {
+    window.location.replace("menü.html");
+  }
+});
+
+
+
+
+
+/* 🔥 FIREBASE */
+firebase.initializeApp({
+  apiKey: "AIzaSyDF6XwfMwASz1mHt16DrR9jjjpozP4MBlA",
+  authDomain: "denetleme-78b55.firebaseapp.com",
+  databaseURL: "https://denetleme-78b55-default-rtdb.firebaseio.com",
+  projectId: "denetleme-78b55",
+  storageBucket: "denetleme-78b55.appspot.com",
+  messagingSenderId: "762780340283",
+  appId: "1:762780340283:web:da64465ec4657307f64c1e"
+});
+
+let currentUser;
+let currentFilter="today";
+
+const totalEl=document.getElementById("total");
+const okEl=document.getElementById("ok");
+const badEl=document.getElementById("bad");
+
+firebase.auth().onAuthStateChanged(user=>{
+  if(!user) return window.location.replace("index.html");
+  currentUser = user;
+
+  firebase.database()
+    .ref("users/" + user.uid)
+    .once("value")
+    .then(snap => {
+      const name =
+        snap.val()?.fullName ||
+        snap.val()?.name ||
+        user.displayName ||
+        user.email.split("@")[0];
+
+      document.getElementById("userInfo").innerText =
+        "Denetleyen: " + name;
+
+      loadData();
+    });
+});
+
+
+function setFilter(type,btn){
+  currentFilter=type;
+  document.querySelectorAll(".filters button").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  loadData();
+}
+
+function getRange(){
+  let s,e=new Date();
+  if(currentFilter==="today"){ s=new Date(); s.setHours(0,0,0,0); }
+  if(currentFilter==="yesterday"){
+    s=new Date(); s.setDate(s.getDate()-1); s.setHours(0,0,0,0);
+    e=new Date(s); e.setHours(23,59,59,999);
+  }
+  if(currentFilter==="week"){
+    s=new Date(); s.setDate(s.getDate()-7); s.setHours(0,0,0,0);
+  }
+  return {s,e};
+}
+
+function loadData(){
+  const list=document.getElementById("projectList");
+  list.innerHTML="";
+  let total=0,ok=0,bad=0;
+  const r=getRange();
+  const grouped={};
+
+  firebase.database().ref("denetimler").once("value",snap=>{
+    snap.forEach(ps=>{
+      ps.forEach(p=>{
+        p.forEach(dSnap=>{
+          const d=dSnap.val();
+          if(d.denetleyenUid!==currentUser.uid) return;
+          if(d.tarih<r.s.getTime()||d.tarih>r.e.getTime()) return;
+
+          const pid=ps.key;
+if(!grouped[pid]) {
+  grouped[pid]={
+    times:[],
+    total:0,
+    ok:0,
+    bad:0,
+    mesaide:0
+  };
+}
+          grouped[pid].times.push(d.tarih);
+          grouped[pid].total++; total++;
+
+          if(d.durum==="gorevi_basinda"){ grouped[pid].ok++; ok++; }
+          else{ grouped[pid].bad++; bad++; }
+		  if(d.mesaide === true){
+  grouped[pid].mesaide++;
+}
+        });
+      });
+    });
+
+
+    totalEl.innerText=total;
+    okEl.innerText=ok;
+    badEl.innerText=bad;
+
+    if(!Object.keys(grouped).length){
+      list.innerHTML=`<div class="empty">Kayıt bulunamadı</div>`;
+      return;
+    }
+
+    Object.keys(grouped).forEach(pid=>{
+      firebase.database().ref("projects/"+pid).once("value",pSnap=>{
+        const name=pSnap.val()?.projectName||pid;
+        const d=grouped[pid];
+        const t=d.times.sort();
+        const s=new Date(t[0]).toLocaleTimeString("tr-TR",{hour:'2-digit',minute:'2-digit'});
+        const e=new Date(t[t.length-1]).toLocaleTimeString("tr-TR",{hour:'2-digit',minute:'2-digit'});
+
+       const div = document.createElement("div");
+div.className = "item " + (d.bad > 0 ? "bad" : "good");
+
+div.innerHTML = `
+  <div class="item-header">
+    <div class="item-title">${name}</div>
+    <div class="item-time">${s} – ${e}</div>
+  </div>
+
+ <div class="item-stats">
+  <div>👥 Toplam: <span>${d.total}</span></div>
+  <div>✅ Görevde: <span>${d.ok}</span></div>
+  <div>❌ Uygunsuz: <span>${d.bad}</span></div>
+</div>
+
+`;
+
+
+list.appendChild(div);
+
+      });
+    });
+  });
+}
+</script>
+<script>
+function goMenu(){
+ sessionStorage.setItem("menuAllowed","ok");
+ window.location.replace("menü.html");
+}
+</script>
+<script>
+let startY = 0;
+
+window.addEventListener("touchstart", e => {
+  startY = e.touches[0].clientY;
+}, { passive: false });
+
+window.addEventListener("touchmove", e => {
+  const currentY = e.touches[0].clientY;
+  if (window.scrollY === 0 && currentY > startY) {
+    e.preventDefault(); // 🔒 yenilemeyi engeller
+  }
+}, { passive: false });
+</script>
+<script>
+window.addEventListener("load", () => {
+  setTimeout(() => {
+    sessionStorage.removeItem("menuAllowed");
+  }, 300); // mobil için KRİTİK
+});
+</script>
+</body>
+</html>
